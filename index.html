@@ -9,139 +9,99 @@
 </head>
 <body>
   <header class="app-header">
-    <div>
-      <p class="eyebrow">Round analyzer</p>
-      <h1>Golf Strokes Gained</h1>
-    </div>
+    <div><p class="eyebrow">Round analyzer</p><h1>Golf Strokes Gained</h1></div>
     <button id="new-round-button" class="secondary-button" type="button">New round</button>
   </header>
 
   <main>
-    <section class="panel" aria-labelledby="round-heading">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Round</p>
-          <h2 id="round-heading">Setup</h2>
-        </div>
-        <p id="save-status" class="status-text" aria-live="polite">Saved locally</p>
-      </div>
-
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Round</p><h2>Setup</h2></div><p id="save-status" class="status-text">Saved locally</p></div>
       <div class="form-grid">
-        <label>Course
-          <input id="course-name" type="text" placeholder="Course name">
-        </label>
-        <label>Date
-          <input id="round-date" type="date">
-        </label>
-        <label>Hole
-          <input id="hole-number" type="number" min="1" max="18" value="1">
-        </label>
-        <label>Par
-          <select id="hole-par">
-            <option value="3">3</option>
-            <option value="4" selected>4</option>
-            <option value="5">5</option>
-          </select>
-        </label>
+        <label>Course<input id="course-name" type="text" placeholder="Course name"></label>
+        <label>Date<input id="round-date" type="date"></label>
+        <label>Hole<input id="hole-number" type="number" min="1" max="18" value="1"></label>
+        <label>Par<select id="hole-par"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></label>
       </div>
     </section>
 
     <section class="summary-grid" aria-label="Round summary">
-      <article class="metric-card primary-metric">
-        <span>Total SG</span>
-        <strong id="total-sg">0.00</strong>
-      </article>
-      <article class="metric-card"><span>Off tee</span><strong id="sg-off-tee">0.00</strong></article>
-      <article class="metric-card"><span>Approach</span><strong id="sg-approach">0.00</strong></article>
-      <article class="metric-card"><span>Around green</span><strong id="sg-around-green">0.00</strong></article>
-      <article class="metric-card"><span>Putting</span><strong id="sg-putting">0.00</strong></article>
+      <article class="metric-card primary-metric"><span>Total SG</span><strong id="total-sg">0.00</strong></article>
+      <article class="metric-card"><span>Driving SG</span><strong id="sg-off-tee">0.00</strong></article>
+      <article class="metric-card"><span>Fairways</span><strong id="fairway-rate">—</strong></article>
+      <article class="metric-card"><span>Playable</span><strong id="playable-rate">—</strong></article>
+      <article class="metric-card"><span>Penalties</span><strong id="drive-penalties">0</strong></article>
     </section>
 
-    <section class="panel" aria-labelledby="shot-heading">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Next shot</p>
-          <h2 id="shot-heading">Record position change</h2>
-        </div>
+    <section class="panel">
+      <div class="shot-context">
+        <div><p class="eyebrow">Next shot</p><h2 id="shot-title">Drive</h2></div>
+        <div id="shot-context-text" class="context-pill">Hole 1 · Par 4</div>
       </div>
 
       <form id="shot-form">
-        <div class="position-grid">
-          <fieldset>
-            <legend>Start</legend>
-            <label>Lie
-              <select id="start-lie" required>
-                <option value="tee">Tee</option>
-                <option value="fairway">Fairway</option>
-                <option value="rough">Rough</option>
-                <option value="sand">Sand</option>
-                <option value="recovery">Recovery</option>
-                <option value="green">Green</option>
-              </select>
-            </label>
-            <label>Distance
-              <input id="start-distance" type="number" min="0" step="0.1" value="400" required>
-            </label>
-          </fieldset>
-
-          <fieldset>
-            <legend>Finish</legend>
-            <label>Lie
-              <select id="end-lie" required>
-                <option value="fairway">Fairway</option>
-                <option value="rough">Rough</option>
-                <option value="sand">Sand</option>
-                <option value="recovery">Recovery</option>
-                <option value="green">Green</option>
-                <option value="holed">Holed</option>
-              </select>
-            </label>
-            <label>Distance
-              <input id="end-distance" type="number" min="0" step="0.1" value="150" required>
-            </label>
-          </fieldset>
+        <div class="form-grid">
+          <label>Shot type<select id="shot-type"><option value="auto">Auto detect</option><option value="drive">Drive</option><option value="approach">Approach</option></select></label>
+          <label>Starting lie<select id="start-lie"><option value="tee">Tee</option><option value="fairway">Fairway</option><option value="rough">Rough</option><option value="sand">Sand</option><option value="recovery">Recovery</option></select></label>
+          <label>Distance to hole<input id="start-distance" type="number" min="1" step="1" value="400" required></label>
+          <label>Club<input id="club" list="club-options" placeholder="Driver"></label>
+          <datalist id="club-options"><option value="Driver"><option value="3 wood"><option value="5 wood"><option value="Hybrid"><option value="3 iron"><option value="4 iron"></datalist>
         </div>
+
+        <fieldset class="miss-fieldset">
+          <legend>Where did it finish relative to your target?</legend>
+          <div id="miss-grid" class="miss-grid" role="radiogroup" aria-label="Shot result direction">
+            <button type="button" data-zone="long-left">Long left</button><button type="button" data-zone="long">Long</button><button type="button" data-zone="long-right">Long right</button>
+            <button type="button" data-zone="left">Left</button><button type="button" data-zone="target" class="target-zone">Target</button><button type="button" data-zone="right">Right</button>
+            <button type="button" data-zone="short-left">Short left</button><button type="button" data-zone="short">Short</button><button type="button" data-zone="short-right">Short right</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Finishing location</legend>
+          <div id="finish-location-grid" class="choice-grid">
+            <button type="button" data-location="fairway">Fairway</button>
+            <button type="button" data-location="first-cut">First cut</button>
+            <button type="button" data-location="rough">Rough</button>
+            <button type="button" data-location="deep-rough">Deep rough</button>
+            <button type="button" data-location="fairway-bunker">Fairway bunker</button>
+            <button type="button" data-location="recovery">Trees / recovery</button>
+            <button type="button" data-location="penalty-area">Penalty area</button>
+            <button type="button" data-location="out-of-bounds">OB / lost</button>
+            <button type="button" data-location="green">Green</button>
+          </div>
+        </fieldset>
 
         <div class="form-grid compact-grid">
-          <label>Club
-            <input id="club" type="text" placeholder="Driver, 7 iron…">
-          </label>
-          <label>Penalty strokes
-            <input id="penalty-strokes" type="number" min="0" max="2" value="0">
-          </label>
+          <label>Remaining distance<input id="end-distance" type="number" min="0" step="1" value="150" required></label>
+          <label id="penalty-type-label" class="hidden">Penalty type<select id="penalty-type"><option value="penalty-area">Penalty area</option><option value="out-of-bounds">Out of bounds / lost ball</option><option value="unplayable">Unplayable</option></select></label>
         </div>
 
-        <p class="helper-text">Use yards off the green and feet on the green.</p>
-        <button class="primary-button" type="submit">Add shot</button>
+        <details>
+          <summary>More details</summary>
+          <div class="form-grid details-grid">
+            <label>Intended shape<select id="intended-shape"><option value="">Not recorded</option><option>Straight</option><option>Draw</option><option>Fade</option></select></label>
+            <label>Contact<select id="contact"><option value="">Not recorded</option><option>Solid</option><option>Heel</option><option>Toe</option><option>Thin</option><option>Heavy</option><option>Topped</option></select></label>
+            <label class="full-width">Notes<input id="notes" type="text" placeholder="Wind, lie, decision..."></label>
+          </div>
+        </details>
+
+        <p id="form-message" class="helper-text" aria-live="polite">Choose a miss zone and finishing location.</p>
+        <button class="primary-button" type="submit">Save shot</button>
       </form>
     </section>
 
-    <section class="panel" aria-labelledby="history-heading">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Round log</p>
-          <h2 id="history-heading">Shots</h2>
-        </div>
-        <button id="undo-button" class="text-button" type="button">Undo last</button>
-      </div>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Driving pattern</p><h2>Miss distribution</h2></div></div>
+      <div id="miss-summary" class="miss-summary"></div>
+    </section>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Hole</th><th>#</th><th>Shot</th><th>Category</th><th>SG</th></tr>
-          </thead>
-          <tbody id="shot-list">
-            <tr class="empty-row"><td colspan="5">No shots recorded yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Round log</p><h2>Shots</h2></div><button id="undo-button" class="text-button" type="button">Undo last</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Hole</th><th>#</th><th>Result</th><th>Finish</th><th>SG</th></tr></thead><tbody id="shot-list"></tbody></table></div>
     </section>
   </main>
 
-  <footer>
-    Prototype benchmark values are approximate and intended to validate the workflow, not for official competitive analysis.
-  </footer>
-
-  <script src="app.js"></script>
+  <footer>Prototype benchmark values remain approximate. Directional outcomes are for pattern analysis; lie, distance, and penalties determine strokes gained.</footer>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
