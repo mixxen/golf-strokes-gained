@@ -28,7 +28,13 @@ Then open `http://localhost:8000`.
 
 ## GitHub Pages
 
-After merging the prototype, enable GitHub Pages under **Settings → Pages** and deploy from the `main` branch root.
+The repository includes a GitHub Actions workflow that deploys the static site whenever changes are pushed to `main`.
+
+After PR #1 is merged, configure **Settings → Pages → Build and deployment → Source** to **GitHub Actions** if GitHub does not select it automatically. The application will then be available at:
+
+https://mixxen.github.io/golf-strokes-gained/
+
+The first deployment may require approving the `github-pages` environment in the repository settings.
 
 ## Benchmark warning
 
