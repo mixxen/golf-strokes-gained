@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateShot, drivingSummary, expectedStrokes, missParts, penaltyForLocation } from '../js/calculations.js';
 
+const closeTo=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-10,`${actual} was not close to ${expected}`);
+
 test('interpolates expected strokes',()=>{
-  assert.equal(expectedStrokes('tee',125),2.985);
+  closeTo(expectedStrokes('tee',125),2.985);
 });
 
 test('parses all dimensions of a miss',()=>{
@@ -25,5 +27,10 @@ test('summarizes drive outcomes',()=>{
     {type:'drive',finish:{location:'out-of-bounds'},penalty:{strokes:1},calculation:{strokesGained:-1.4}},
     {type:'approach',finish:{location:'green'},penalty:null,calculation:{strokesGained:0.3}}
   ];
-  assert.deepEqual(drivingSummary(shots),{count:3,fairwayRate:1/3,playableRate:2/3,penalties:1,sg:-1.3});
+  const summary=drivingSummary(shots);
+  assert.equal(summary.count,3);
+  closeTo(summary.fairwayRate,1/3);
+  closeTo(summary.playableRate,2/3);
+  assert.equal(summary.penalties,1);
+  closeTo(summary.sg,-1.3);
 });
