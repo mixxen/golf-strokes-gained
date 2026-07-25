@@ -9,8 +9,8 @@ export const BENCHMARKS = {
 
 export const LOCATION_TO_LIE = {
   fairway:"fairway", "first-cut":"rough", rough:"rough", "deep-rough":"recovery",
-  "fairway-bunker":"sand", recovery:"recovery", "penalty-area":"rough",
-  "out-of-bounds":"tee", green:"green", holed:"holed"
+  "fairway-bunker":"sand", "greenside-bunker":"sand", fringe:"fairway", recovery:"recovery",
+  "penalty-area":"rough", "out-of-bounds":"tee", green:"green", holed:"holed"
 };
 
 export function expectedStrokes(lie, distance, benchmarks = BENCHMARKS) {
@@ -53,6 +53,22 @@ export function calculateShot({ startLie, startDistance, finishLocation, endDist
   const expectedAfter = expectedStrokes(benchmarkLie, finishLocation === "holed" ? 0 : endDistance);
   const penaltyStrokes = Number(penalty?.strokes || 0);
   return { benchmarkLie, expectedBefore, expectedAfter, penaltyStrokes, strokesGained:expectedBefore-1-penaltyStrokes-expectedAfter };
+}
+
+export function inferShotType({ lie, distance, par, shotNumber }) {
+  if (lie === "green") return "putt";
+  if (lie === "tee" && Number(par) >= 4 && Number(shotNumber) === 1) return "drive";
+  if (Number(distance) <= 30) return "chip";
+  return "approach";
+}
+
+export function nextShotStart(shot) {
+  if (!shot || shot.finish.location === "holed") return null;
+  return {
+    lie: shot.finish.benchmarkLie,
+    distance: shot.finish.distance,
+    unit: shot.finish.benchmarkLie === "green" ? "feet" : "yards"
+  };
 }
 
 export function drivingSummary(shots) {
