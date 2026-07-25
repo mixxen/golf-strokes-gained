@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123c2d">
+  <title>Golf Strokes Gained</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Round analyzer</p>
+      <h1>Golf Strokes Gained</h1>
+    </div>
+    <button id="new-round-button" class="secondary-button" type="button">New round</button>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="round-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Round</p>
+          <h2 id="round-heading">Setup</h2>
+        </div>
+        <p id="save-status" class="status-text" aria-live="polite">Saved locally</p>
+      </div>
+
+      <div class="form-grid">
+        <label>Course
+          <input id="course-name" type="text" placeholder="Course name">
+        </label>
+        <label>Date
+          <input id="round-date" type="date">
+        </label>
+        <label>Hole
+          <input id="hole-number" type="number" min="1" max="18" value="1">
+        </label>
+        <label>Par
+          <select id="hole-par">
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="summary-grid" aria-label="Round summary">
+      <article class="metric-card primary-metric">
+        <span>Total SG</span>
+        <strong id="total-sg">0.00</strong>
+      </article>
+      <article class="metric-card"><span>Off tee</span><strong id="sg-off-tee">0.00</strong></article>
+      <article class="metric-card"><span>Approach</span><strong id="sg-approach">0.00</strong></article>
+      <article class="metric-card"><span>Around green</span><strong id="sg-around-green">0.00</strong></article>
+      <article class="metric-card"><span>Putting</span><strong id="sg-putting">0.00</strong></article>
+    </section>
+
+    <section class="panel" aria-labelledby="shot-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Next shot</p>
+          <h2 id="shot-heading">Record position change</h2>
+        </div>
+      </div>
+
+      <form id="shot-form">
+        <div class="position-grid">
+          <fieldset>
+            <legend>Start</legend>
+            <label>Lie
+              <select id="start-lie" required>
+                <option value="tee">Tee</option>
+                <option value="fairway">Fairway</option>
+                <option value="rough">Rough</option>
+                <option value="sand">Sand</option>
+                <option value="recovery">Recovery</option>
+                <option value="green">Green</option>
+              </select>
+            </label>
+            <label>Distance
+              <input id="start-distance" type="number" min="0" step="0.1" value="400" required>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Finish</legend>
+            <label>Lie
+              <select id="end-lie" required>
+                <option value="fairway">Fairway</option>
+                <option value="rough">Rough</option>
+                <option value="sand">Sand</option>
+                <option value="recovery">Recovery</option>
+                <option value="green">Green</option>
+                <option value="holed">Holed</option>
+              </select>
+            </label>
+            <label>Distance
+              <input id="end-distance" type="number" min="0" step="0.1" value="150" required>
+            </label>
+          </fieldset>
+        </div>
+
+        <div class="form-grid compact-grid">
+          <label>Club
+            <input id="club" type="text" placeholder="Driver, 7 iron…">
+          </label>
+          <label>Penalty strokes
+            <input id="penalty-strokes" type="number" min="0" max="2" value="0">
+          </label>
+        </div>
+
+        <p class="helper-text">Use yards off the green and feet on the green.</p>
+        <button class="primary-button" type="submit">Add shot</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="history-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Round log</p>
+          <h2 id="history-heading">Shots</h2>
+        </div>
+        <button id="undo-button" class="text-button" type="button">Undo last</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Hole</th><th>#</th><th>Shot</th><th>Category</th><th>SG</th></tr>
+          </thead>
+          <tbody id="shot-list">
+            <tr class="empty-row"><td colspan="5">No shots recorded yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Prototype benchmark values are approximate and intended to validate the workflow, not for official competitive analysis.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
