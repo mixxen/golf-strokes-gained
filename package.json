@@ -1,0 +1,8 @@
+{
+  "name": "golf-strokes-gained",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
