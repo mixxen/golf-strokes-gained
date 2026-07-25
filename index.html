@@ -23,10 +23,7 @@
     </section>
 
     <section class="panel hole-panel">
-      <div class="section-heading">
-        <div><p class="eyebrow">Scorecard</p><h2>Select a hole</h2></div>
-        <div id="hole-save-state" class="context-pill">Hole 1 saved</div>
-      </div>
+      <div class="section-heading"><div><p class="eyebrow">Scorecard</p><h2>Select a hole</h2></div><div id="hole-save-state" class="context-pill">Hole 1 saved</div></div>
       <div id="hole-selector" class="hole-selector" role="tablist" aria-label="Select hole"></div>
       <div class="hole-settings">
         <label>Par<select id="hole-par"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></label>
@@ -44,22 +41,24 @@
       <article class="metric-card"><span>Penalties</span><strong id="drive-penalties">0</strong></article>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="shot-entry-panel">
       <div class="shot-context">
         <div><p class="eyebrow" id="form-mode-label">Next shot</p><h2 id="shot-title">Drive</h2></div>
-        <div id="shot-context-text" class="context-pill">Hole 1 · Par 4</div>
+        <div id="shot-context-text" class="context-pill">Hole 1 · Shot 1</div>
       </div>
+
+      <div id="sequence-message" class="sequence-message">Start the hole from the tee. Each saved result becomes the starting position for the next shot.</div>
 
       <form id="shot-form">
         <div class="form-grid">
-          <label>Shot type<select id="shot-type"><option value="auto">Auto detect</option><option value="drive">Drive</option><option value="approach">Approach</option></select></label>
+          <label>Shot type<select id="shot-type"><option value="auto">Auto detect</option><option value="drive">Drive</option><option value="approach">Approach</option><option value="chip">Chip / short game</option><option value="putt">Putt</option></select></label>
           <label>Starting lie<select id="start-lie"><option value="tee">Tee</option><option value="fairway">Fairway</option><option value="rough">Rough</option><option value="sand">Sand</option><option value="recovery">Recovery</option><option value="green">Green</option></select></label>
-          <label>Distance to hole<input id="start-distance" type="number" min="1" step="1" value="400" required></label>
+          <label>Distance to hole (<span id="start-unit">yd</span>)<input id="start-distance" type="number" min="0" step="1" value="400" required></label>
           <label>Club<input id="club" list="club-options" placeholder="Driver"></label>
-          <datalist id="club-options"><option value="Driver"><option value="3 wood"><option value="5 wood"><option value="Hybrid"><option value="3 iron"><option value="4 iron"></datalist>
+          <datalist id="club-options"><option value="Driver"><option value="3 wood"><option value="5 wood"><option value="Hybrid"><option value="4 iron"><option value="7 iron"><option value="Pitching wedge"><option value="Sand wedge"><option value="Putter"></datalist>
         </div>
 
-        <fieldset class="miss-fieldset">
+        <fieldset class="miss-fieldset" id="miss-fieldset">
           <legend>Where did it finish relative to your target?</legend>
           <div id="miss-grid" class="miss-grid" role="radiogroup" aria-label="Shot result direction">
             <button type="button" data-zone="long-left">Long left</button><button type="button" data-zone="long">Long</button><button type="button" data-zone="long-right">Long right</button>
@@ -72,13 +71,14 @@
           <legend>Finishing location</legend>
           <div id="finish-location-grid" class="choice-grid">
             <button type="button" data-location="fairway">Fairway</button><button type="button" data-location="first-cut">First cut</button><button type="button" data-location="rough">Rough</button>
-            <button type="button" data-location="deep-rough">Deep rough</button><button type="button" data-location="fairway-bunker">Fairway bunker</button><button type="button" data-location="recovery">Trees / recovery</button>
-            <button type="button" data-location="penalty-area">Penalty area</button><button type="button" data-location="out-of-bounds">OB / lost</button><button type="button" data-location="green">Green</button>
+            <button type="button" data-location="deep-rough">Deep rough</button><button type="button" data-location="fairway-bunker">Fairway bunker</button><button type="button" data-location="greenside-bunker">Greenside bunker</button>
+            <button type="button" data-location="fringe">Fringe</button><button type="button" data-location="recovery">Trees / recovery</button><button type="button" data-location="penalty-area">Penalty area</button>
+            <button type="button" data-location="out-of-bounds">OB / lost</button><button type="button" data-location="green">Green</button><button type="button" data-location="holed" class="holed-button">Holed</button>
           </div>
         </fieldset>
 
         <div class="form-grid compact-grid">
-          <label>Remaining distance<input id="end-distance" type="number" min="0" step="1" value="150" required></label>
+          <label id="end-distance-label">Remaining distance (<span id="end-unit">yd</span>)<input id="end-distance" type="number" min="0" step="1" value="150" required></label>
           <label id="penalty-type-label" class="hidden">Penalty type<select id="penalty-type"><option value="penalty-area">Penalty area</option><option value="out-of-bounds">Out of bounds / lost ball</option><option value="unplayable">Unplayable</option></select></label>
         </div>
 
@@ -89,8 +89,9 @@
         </div></details>
 
         <p id="form-message" class="helper-text" aria-live="polite">Choose a miss zone and finishing location.</p>
-        <div class="form-actions"><button id="cancel-edit-button" class="text-button hidden" type="button">Cancel edit</button><button id="save-shot-button" class="primary-button" type="submit">Save shot</button></div>
+        <div class="form-actions"><button id="cancel-edit-button" class="text-button hidden" type="button">Cancel edit</button><button id="save-shot-button" class="primary-button" type="submit">Add next shot</button></div>
       </form>
+      <div id="hole-complete" class="hole-complete hidden"><strong>Hole complete</strong><p>The ball is holed. Select another hole or edit a previous shot.</p></div>
     </section>
 
     <section class="panel">
@@ -104,7 +105,7 @@
     </section>
   </main>
 
-  <footer>Each hole and unfinished shot form is saved locally when you switch holes. Directional outcomes support pattern analysis; lie, distance, and penalties determine strokes gained.</footer>
+  <footer>Shots are recorded in sequence. The finishing position of each shot automatically becomes the starting position of the next shot.</footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
