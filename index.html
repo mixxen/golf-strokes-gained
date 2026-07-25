@@ -16,11 +16,23 @@
   <main>
     <section class="panel">
       <div class="section-heading"><div><p class="eyebrow">Round</p><h2>Setup</h2></div><p id="save-status" class="status-text">Saved locally</p></div>
-      <div class="form-grid">
+      <div class="form-grid round-grid">
         <label>Course<input id="course-name" type="text" placeholder="Course name"></label>
         <label>Date<input id="round-date" type="date"></label>
-        <label>Hole<input id="hole-number" type="number" min="1" max="18" value="1"></label>
+      </div>
+    </section>
+
+    <section class="panel hole-panel">
+      <div class="section-heading">
+        <div><p class="eyebrow">Scorecard</p><h2>Select a hole</h2></div>
+        <div id="hole-save-state" class="context-pill">Hole 1 saved</div>
+      </div>
+      <div id="hole-selector" class="hole-selector" role="tablist" aria-label="Select hole"></div>
+      <div class="hole-settings">
         <label>Par<select id="hole-par"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></label>
+        <label>Tee distance<input id="hole-distance" type="number" min="1" max="800" step="1" value="400"></label>
+        <div class="hole-score"><span>Shots</span><strong id="hole-shot-count">0</strong></div>
+        <div class="hole-score"><span>Hole SG</span><strong id="hole-sg">0.00</strong></div>
       </div>
     </section>
 
@@ -34,14 +46,14 @@
 
     <section class="panel">
       <div class="shot-context">
-        <div><p class="eyebrow">Next shot</p><h2 id="shot-title">Drive</h2></div>
+        <div><p class="eyebrow" id="form-mode-label">Next shot</p><h2 id="shot-title">Drive</h2></div>
         <div id="shot-context-text" class="context-pill">Hole 1 · Par 4</div>
       </div>
 
       <form id="shot-form">
         <div class="form-grid">
           <label>Shot type<select id="shot-type"><option value="auto">Auto detect</option><option value="drive">Drive</option><option value="approach">Approach</option></select></label>
-          <label>Starting lie<select id="start-lie"><option value="tee">Tee</option><option value="fairway">Fairway</option><option value="rough">Rough</option><option value="sand">Sand</option><option value="recovery">Recovery</option></select></label>
+          <label>Starting lie<select id="start-lie"><option value="tee">Tee</option><option value="fairway">Fairway</option><option value="rough">Rough</option><option value="sand">Sand</option><option value="recovery">Recovery</option><option value="green">Green</option></select></label>
           <label>Distance to hole<input id="start-distance" type="number" min="1" step="1" value="400" required></label>
           <label>Club<input id="club" list="club-options" placeholder="Driver"></label>
           <datalist id="club-options"><option value="Driver"><option value="3 wood"><option value="5 wood"><option value="Hybrid"><option value="3 iron"><option value="4 iron"></datalist>
@@ -59,15 +71,9 @@
         <fieldset>
           <legend>Finishing location</legend>
           <div id="finish-location-grid" class="choice-grid">
-            <button type="button" data-location="fairway">Fairway</button>
-            <button type="button" data-location="first-cut">First cut</button>
-            <button type="button" data-location="rough">Rough</button>
-            <button type="button" data-location="deep-rough">Deep rough</button>
-            <button type="button" data-location="fairway-bunker">Fairway bunker</button>
-            <button type="button" data-location="recovery">Trees / recovery</button>
-            <button type="button" data-location="penalty-area">Penalty area</button>
-            <button type="button" data-location="out-of-bounds">OB / lost</button>
-            <button type="button" data-location="green">Green</button>
+            <button type="button" data-location="fairway">Fairway</button><button type="button" data-location="first-cut">First cut</button><button type="button" data-location="rough">Rough</button>
+            <button type="button" data-location="deep-rough">Deep rough</button><button type="button" data-location="fairway-bunker">Fairway bunker</button><button type="button" data-location="recovery">Trees / recovery</button>
+            <button type="button" data-location="penalty-area">Penalty area</button><button type="button" data-location="out-of-bounds">OB / lost</button><button type="button" data-location="green">Green</button>
           </div>
         </fieldset>
 
@@ -76,32 +82,29 @@
           <label id="penalty-type-label" class="hidden">Penalty type<select id="penalty-type"><option value="penalty-area">Penalty area</option><option value="out-of-bounds">Out of bounds / lost ball</option><option value="unplayable">Unplayable</option></select></label>
         </div>
 
-        <details>
-          <summary>More details</summary>
-          <div class="form-grid details-grid">
-            <label>Intended shape<select id="intended-shape"><option value="">Not recorded</option><option>Straight</option><option>Draw</option><option>Fade</option></select></label>
-            <label>Contact<select id="contact"><option value="">Not recorded</option><option>Solid</option><option>Heel</option><option>Toe</option><option>Thin</option><option>Heavy</option><option>Topped</option></select></label>
-            <label class="full-width">Notes<input id="notes" type="text" placeholder="Wind, lie, decision..."></label>
-          </div>
-        </details>
+        <details id="more-details"><summary>More details</summary><div class="form-grid details-grid">
+          <label>Intended shape<select id="intended-shape"><option value="">Not recorded</option><option>Straight</option><option>Draw</option><option>Fade</option></select></label>
+          <label>Contact<select id="contact"><option value="">Not recorded</option><option>Solid</option><option>Heel</option><option>Toe</option><option>Thin</option><option>Heavy</option><option>Topped</option></select></label>
+          <label class="full-width">Notes<input id="notes" type="text" placeholder="Wind, lie, decision..."></label>
+        </div></details>
 
         <p id="form-message" class="helper-text" aria-live="polite">Choose a miss zone and finishing location.</p>
-        <button class="primary-button" type="submit">Save shot</button>
+        <div class="form-actions"><button id="cancel-edit-button" class="text-button hidden" type="button">Cancel edit</button><button id="save-shot-button" class="primary-button" type="submit">Save shot</button></div>
       </form>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Current hole</p><h2 id="hole-log-title">Hole 1 shots</h2></div><button id="undo-button" class="text-button" type="button">Undo last on hole</button></div>
+      <div id="hole-shot-list" class="shot-card-list"></div>
     </section>
 
     <section class="panel">
       <div class="section-heading"><div><p class="eyebrow">Driving pattern</p><h2>Miss distribution</h2></div></div>
       <div id="miss-summary" class="miss-summary"></div>
     </section>
-
-    <section class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Round log</p><h2>Shots</h2></div><button id="undo-button" class="text-button" type="button">Undo last</button></div>
-      <div class="table-wrap"><table><thead><tr><th>Hole</th><th>#</th><th>Result</th><th>Finish</th><th>SG</th></tr></thead><tbody id="shot-list"></tbody></table></div>
-    </section>
   </main>
 
-  <footer>Prototype benchmark values remain approximate. Directional outcomes are for pattern analysis; lie, distance, and penalties determine strokes gained.</footer>
+  <footer>Each hole and unfinished shot form is saved locally when you switch holes. Directional outcomes support pattern analysis; lie, distance, and penalties determine strokes gained.</footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
