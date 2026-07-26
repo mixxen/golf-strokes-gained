@@ -44,3 +44,9 @@ test('course lookup UI includes hole-level manual fallback and no separate cours
   assert.match(app,/preferredTeeKey:round\.courseData\.teeKey/);
   assert.match(app,/changingLoadedCourse/);
 });
+
+test('course import does not claim a tee loaded when only pars are available',async()=>{
+  const app=await read('js/app.js');
+  assert.match(app,/Pars loaded · hole yardages unavailable/);
+  assert.match(app,/No hole yardages from OpenGolfAPI/);
+});

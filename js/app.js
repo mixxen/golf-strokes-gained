@@ -294,7 +294,9 @@ function chooseTee(teeKey){
   const loaded=tee&&round.courseData?.courseId===selectedCourse?.id&&round.courseData?.teeKey===tee.key;
   elements.importCourseButton.disabled=!tee||!teeIsSelectable(tee)||loaded;
   elements.importCourseButton.textContent=loaded
-    ? `${teeLabel(tee)} tees loaded`
+    ? Number(round.courseData?.importedHoleCount)>0
+      ? `${teeLabel(tee)} tees loaded`
+      : 'Pars loaded · hole yardages unavailable'
     : tee?`Use ${teeLabel(tee)} tees`:'Use selected tees';
 }
 
@@ -312,7 +314,7 @@ function renderSelectedCourse(preferredTeeKey=null){
       tee.slope?`Slope ${tee.slope}`:null,
       tee.usableHoleCount
         ? `${tee.usableHoleCount}/${selectedCourse.holeCount||18} yardages`
-        : 'Pars only · enter yardages per hole'
+        : 'No hole yardages from OpenGolfAPI'
     ].filter(Boolean).join(' · ');
     return `<button type="button" class="tee-button" aria-pressed="false" data-tee-key="${escapeHtml(tee.key)}" ${teeIsSelectable(tee)?'':'disabled'}><strong>${escapeHtml(teeLabel(tee))}</strong><span>${escapeHtml(details)}</span></button>`;
   }).join(''):'<p class="helper-text">This course does not currently include tee sets. You can still enter it manually.</p>';
