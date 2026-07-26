@@ -11,9 +11,11 @@ import {
 } from './calculations.js';
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
+import {applyCourseTee,savedTeeKey,teeIsSelectable} from './course-round.js';
 
-const STORAGE_KEY='golf-strokes-gained-round-v6';
+const STORAGE_KEY='golf-strokes-gained-round-v7';
 const PRIOR_KEYS=[
+  'golf-strokes-gained-round-v6',
   'golf-strokes-gained-round-v5',
   'golf-strokes-gained-round-v4',
   'golf-strokes-gained-round-v3',
@@ -53,7 +55,7 @@ const defaultDraft=()=>({
 });
 const defaultHole=(number)=>({number,par:4,teeDistance:400,draft:defaultDraft()});
 const defaultRound=()=>({
-  schemaVersion:6,
+  schemaVersion:7,
   courseName:'',
   courseData:null,
   date:localDate(),
@@ -73,7 +75,6 @@ let courseRequestController=null;
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
-  course:$('#course-name'),
   date:$('#round-date'),
   courseSearchForm:$('#course-search-form'),
   courseSearch:$('#course-search'),
@@ -241,7 +242,6 @@ function loadRound(){
 }
 
 function persist(message='Saved locally'){
-  round.courseName=elements.course.value.trim();
   round.date=elements.date.value;
   localStorage.setItem(STORAGE_KEY,JSON.stringify(round));
   elements.saveStatus.textContent=message;
@@ -288,7 +288,11 @@ function chooseTee(teeKey){
     button.setAttribute('aria-pressed',String(selected));
   });
   const tee=selectedCourse?.tees.find((item)=>item.key===teeKey);
-  elements.importCourseButton.disabled=!tee||tee.usableHoleCount===0;
+  const loaded=tee&&round.courseData?.courseId===selectedCourse?.id&&round.courseData?.teeKey===tee.key;
+  elements.importCourseButton.disabled=!tee||!teeIsSelectable(tee)||loaded;
+  elements.importCourseButton.textContent=loaded
+    ? `${teeLabel(tee)} tees loaded`
+    : tee?`Use ${teeLabel(tee)} tees`:'Use selected tees';
 }
 
 function renderSelectedCourse(preferredTeeKey=null){
@@ -303,18 +307,20 @@ function renderSelectedCourse(preferredTeeKey=null){
       tee.yardage?`${tee.yardage} yd`:null,
       tee.rating?`Rating ${tee.rating}`:null,
       tee.slope?`Slope ${tee.slope}`:null,
-      `${tee.usableHoleCount}/${selectedCourse.holeCount||18} yardages`
+      tee.usableHoleCount
+        ? `${tee.usableHoleCount}/${selectedCourse.holeCount||18} yardages`
+        : 'Pars only · enter yardages per hole'
     ].filter(Boolean).join(' · ');
-    return `<button type="button" class="tee-button" aria-pressed="false" data-tee-key="${escapeHtml(tee.key)}" ${tee.usableHoleCount?'':'disabled'}><strong>${escapeHtml(teeLabel(tee))}</strong><span>${escapeHtml(details)}</span></button>`;
+    return `<button type="button" class="tee-button" aria-pressed="false" data-tee-key="${escapeHtml(tee.key)}" ${teeIsSelectable(tee)?'':'disabled'}><strong>${escapeHtml(teeLabel(tee))}</strong><span>${escapeHtml(details)}</span></button>`;
   }).join(''):'<p class="helper-text">This course does not currently include tee sets. You can still enter it manually.</p>';
   elements.selectedCoursePanel.classList.remove('hidden');
-  const preferred=selectedCourse.tees.find((tee)=>tee.key===preferredTeeKey&&tee.usableHoleCount);
-  const best=selectedCourse.tees.filter((tee)=>tee.usableHoleCount).sort((a,b)=>b.usableHoleCount-a.usableHoleCount)[0];
+  const preferred=selectedCourse.tees.find((tee)=>tee.key===preferredTeeKey&&teeIsSelectable(tee));
+  const best=selectedCourse.tees.filter(teeIsSelectable).sort((a,b)=>b.usableHoleCount-a.usableHoleCount)[0];
   selectedTeeKey=(preferred||best)?.key||null;
   chooseTee(selectedTeeKey);
 }
 
-async function loadCourse(courseId,{preferredTeeKey=null}={}){
+async function loadCourse(courseId,{preferredTeeKey=null,scroll=true}={}){
   courseRequestController?.abort();
   courseRequestController=new AbortController();
   elements.courseSearchStatus.textContent='Loading course and tee data…';
@@ -338,7 +344,7 @@ async function loadCourse(courseId,{preferredTeeKey=null}={}){
         ? 'Choose the tees you are playing.'
         : 'No tee data is available for this course. Continue with manual entry.';
     }
-    elements.selectedCoursePanel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(scroll) elements.selectedCoursePanel.scrollIntoView({behavior:'smooth',block:'nearest'});
   } catch(error){
     if(error?.name!=='AbortError') elements.courseSearchStatus.textContent=error.message;
   } finally {
@@ -384,40 +390,18 @@ async function searchCourses(){
   }
 }
 
-function importSelectedCourse(){
-  const tee=selectedCourse?.tees.find((item)=>item.key===selectedTeeKey);
-  if(!selectedCourse||!tee) return;
-  if(round.shots.length&&!confirm('Replace the current pars and tee yardages? Existing strokes will be recalculated from the imported tee positions.')) return;
+function importSelectedCourse({teeKey=selectedTeeKey}={}){
+  const tee=selectedCourse?.tees.find((item)=>item.key===teeKey);
+  if(!selectedCourse||!tee) return false;
+  if(round.shots.length&&!confirm('Replace the current pars and tee yardages? Existing strokes will be recalculated from the imported tee positions.')) return false;
 
-  let imported=0;
-  for(const importedHole of tee.holes){
-    const hole=round.holes[importedHole.number-1];
-    if(!hole) continue;
-    if(importedHole.par) hole.par=importedHole.par;
-    if(importedHole.yardage){
-      hole.teeDistance=importedHole.yardage;
-      imported+=1;
-    }
-    hole.draft=defaultDraft();
-  }
-  round.courseName=selectedCourse.name;
-  round.courseData={
-    provider:'opengolfapi',
-    courseId:selectedCourse.id,
-    courseName:selectedCourse.name,
-    teeKey:tee.key,
-    teeName:teeLabel(tee),
-    rating:tee.rating,
-    slope:tee.slope,
-    yardage:tee.yardage,
-    importedHoleCount:imported,
-    sourceLicense:OPENGOLF_ATTRIBUTION.license,
-    importedAt:new Date().toISOString(),
-    modified:false
-  };
+  const {imported,updated,missing}=applyCourseTee(round,selectedCourse,tee,{
+    makeDraft:defaultDraft,
+    attribution:OPENGOLF_ATTRIBUTION
+  });
   round.holes.forEach((hole)=>recalculateHoleShots(hole.number));
   courseCache.remember(selectedCourse,tee);
-  elements.course.value=round.courseName;
+  selectedTeeKey=tee.key;
   selectedZone=null;
   selectedLocation=null;
   editingShotId=null;
@@ -425,10 +409,11 @@ function importSelectedCourse(){
   restoreDraft();
   render();
   renderRecentCourses();
-  const missing=Math.max(0,(selectedCourse.holeCount||18)-imported);
+  chooseTee(tee.key);
   elements.courseSearchStatus.textContent=missing
-    ? `${imported} holes loaded from ${teeLabel(tee)} tees. ${missing} missing yardage${missing===1?'':'s'} can be entered manually.`
+    ? `${updated} pars and ${imported} tee yardages loaded from ${teeLabel(tee)} tees. Enter the ${missing} missing yardage${missing===1?'':'s'} per hole.`
     : `${imported} holes loaded from ${teeLabel(tee)} tees.`;
+  return true;
 }
 
 function markCourseModified(){
@@ -972,7 +957,6 @@ function renderMissSummary(){
 }
 
 function render(){
-  elements.course.value=round.courseName;
   elements.date.value=round.date;
   renderCourseSource();
   renderRecentCourses();
@@ -994,7 +978,13 @@ document.addEventListener('click',(event)=>{
   const courseButton=event.target.closest('[data-course-id]');
   if(courseButton) loadCourse(courseButton.dataset.courseId,{preferredTeeKey:courseButton.dataset.preferredTee||null});
   const teeButton=event.target.closest('[data-tee-key]');
-  if(teeButton) chooseTee(teeButton.dataset.teeKey);
+  if(teeButton){
+    const priorTeeKey=selectedTeeKey;
+    chooseTee(teeButton.dataset.teeKey);
+    const changingLoadedCourse=round.courseData?.courseId===selectedCourse?.id
+      && round.courseData?.teeKey!==selectedTeeKey;
+    if(changingLoadedCourse&&!importSelectedCourse({teeKey:selectedTeeKey})) chooseTee(priorTeeKey);
+  }
   const holeButton=event.target.closest('[data-hole]');
   if(holeButton) switchHole(Number(holeButton.dataset.hole));
   const editButton=event.target.closest('[data-edit]');
@@ -1035,11 +1025,12 @@ elements.manualCourseButton.addEventListener('click',()=>{
   elements.courseResults.innerHTML='';
   if(round.courseData){
     round.courseData=null;
+    round.courseName='';
     persist('Manual course entry enabled');
   }
   renderCourseSource();
-  elements.courseSearchStatus.textContent='Manual entry is active. Existing course values remain editable and saved locally.';
-  elements.course.focus();
+  elements.courseSearchStatus.textContent='Manual entry is active. Edit the par and tee distance for each hole below; changes save locally.';
+  elements.par.focus();
 });
 
 elements.shotType.addEventListener('change',()=>{ updateContext(); saveDraft(); });
@@ -1080,14 +1071,8 @@ elements.holeDistance.addEventListener('change',()=>{
   render();
 });
 
-[elements.course,elements.date].forEach((element)=>{
-  element.addEventListener('change',()=>{
-    if(element===elements.course) markCourseModified();
-    persist();
-    renderCourseSource();
-  });
-  element.addEventListener('input',()=>{ elements.saveStatus.textContent='Unsaved changes'; });
-});
+elements.date.addEventListener('change',()=>persist());
+elements.date.addEventListener('input',()=>{ elements.saveStatus.textContent='Unsaved changes'; });
 
 $('#undo-button').addEventListener('click',undoHole);
 elements.cancelEditButton.addEventListener('click',()=>cancelEdit());
@@ -1104,7 +1089,7 @@ $('#new-round-button').addEventListener('click',()=>{
   selectedTeeKey=null;
   elements.courseResults.innerHTML='';
   elements.selectedCoursePanel.classList.add('hidden');
-  elements.courseSearchStatus.textContent='Search is optional. Manual course name, pars, and yardages always remain editable.';
+  elements.courseSearchStatus.textContent="Search is optional. You can always edit each hole's par and tee distance below.";
   restoreDraft();
   render();
 });
@@ -1114,3 +1099,13 @@ round.holes.forEach((hole)=>recalculateHoleShots(hole.number));
 restoreDraft();
 render();
 persist();
+
+if(round.courseData?.courseId){
+  loadCourse(round.courseData.courseId,{
+    preferredTeeKey:round.courseData.teeKey,
+    scroll:false
+  }).then(()=>{
+    const persistedTee=savedTeeKey(round,selectedCourse);
+    if(persistedTee) chooseTee(persistedTee);
+  });
+}
