@@ -21,6 +21,39 @@
         <label>Course<input id="course-name" type="text" placeholder="Course name"></label>
         <label>Date<input id="round-date" type="date"></label>
       </div>
+      <div class="course-tools">
+        <div class="course-tool-heading">
+          <div>
+            <h3>Load a scorecard</h3>
+            <p>Search OpenGolfAPI to fill every available hole, or keep entering the course manually.</p>
+          </div>
+          <button id="manual-course-button" class="text-button" type="button">Use manual entry</button>
+        </div>
+        <form id="course-search-form" class="course-search-form" role="search">
+          <label class="course-search-label">Course name, city, or state
+            <span class="search-control"><input id="course-search" type="search" minlength="2" autocomplete="off" placeholder="e.g. Pebble Beach"><button id="course-search-button" class="primary-button" type="submit">Search</button></span>
+          </label>
+        </form>
+        <p id="course-search-status" class="helper-text" aria-live="polite">Search is optional. Manual course name, pars, and yardages always remain editable.</p>
+        <div id="recent-course-section" class="course-subsection hidden">
+          <h4>Recent courses</h4>
+          <div id="recent-courses" class="course-result-list"></div>
+        </div>
+        <div id="course-results" class="course-result-list" aria-live="polite"></div>
+        <div id="selected-course-panel" class="selected-course-panel hidden">
+          <div>
+            <p class="eyebrow">Selected course</p>
+            <h3 id="selected-course-name"></h3>
+            <p id="selected-course-detail" class="helper-text"></p>
+          </div>
+          <fieldset>
+            <legend>Choose tees</legend>
+            <div id="tee-selector" class="tee-selector"></div>
+          </fieldset>
+          <button id="import-course-button" class="primary-button" type="button" disabled>Use this course and tees</button>
+        </div>
+        <p id="course-source-note" class="course-source-note hidden"></p>
+      </div>
     </section>
 
     <section class="panel hole-panel">
@@ -149,7 +182,7 @@
     </section>
   </main>
 
-  <footer>Benchmark: PGA TOUR — Broadie 2003–2010. Historical and unadjusted for course, round, and field difficulty. Distances outside the published range use the nearest endpoint.</footer>
+  <footer>Benchmark: PGA TOUR — Broadie 2003–2010. Historical and unadjusted for course, round, and field difficulty. Distances outside the published range use the nearest endpoint.<br>Course data, when loaded from the directory: <a href="https://opengolfapi.org/" target="_blank" rel="noopener">OpenGolfAPI</a>, licensed under <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL 1.0</a>.</footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

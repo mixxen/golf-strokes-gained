@@ -29,3 +29,15 @@ test('static page contains no duplicate ids',async()=>{
   const duplicates=ids.filter((id,index)=>ids.indexOf(id)!==index);
   assert.deepEqual(duplicates,[]);
 });
+
+test('course lookup UI includes manual fallback and ODbL attribution',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  assert.match(html,/id="course-search-form"/);
+  assert.match(html,/id="tee-selector"/);
+  assert.match(html,/Use manual entry/);
+  assert.match(html,/OpenGolfAPI/);
+  assert.match(html,/ODbL 1\.0/);
+  assert.match(app,/createOpenGolfApiProvider/);
+  assert.match(app,/createCourseCache/);
+  assert.match(app,/courseData/);
+});

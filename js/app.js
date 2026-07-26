@@ -9,9 +9,12 @@ import {
   scoreLabel,
   summarizeHole
 } from './calculations.js';
+import {createCourseCache} from './course-cache.js';
+import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 
-const STORAGE_KEY='golf-strokes-gained-round-v5';
+const STORAGE_KEY='golf-strokes-gained-round-v6';
 const PRIOR_KEYS=[
+  'golf-strokes-gained-round-v5',
   'golf-strokes-gained-round-v4',
   'golf-strokes-gained-round-v3',
   'golf-strokes-gained-round-v2'
@@ -26,6 +29,8 @@ const FINISH_OPTIONS={
 };
 const DEFAULT_CLUBS={drive:'Driver',approach:'',chip:'Sand wedge',putt:'Putter'};
 const DEFAULT_DISTANCE_BY_PAR={3:170,4:400,5:520};
+const courseProvider=createOpenGolfApiProvider();
+const courseCache=createCourseCache(localStorage);
 
 function localDate(){
   const now=new Date();
@@ -48,8 +53,9 @@ const defaultDraft=()=>({
 });
 const defaultHole=(number)=>({number,par:4,teeDistance:400,draft:defaultDraft()});
 const defaultRound=()=>({
-  schemaVersion:5,
+  schemaVersion:6,
   courseName:'',
+  courseData:null,
   date:localDate(),
   currentHole:1,
   holes:Array.from({length:18},(_,index)=>defaultHole(index+1)),
@@ -61,11 +67,28 @@ let round=loadRound();
 let selectedZone=null;
 let selectedLocation=null;
 let editingShotId=null;
+let selectedCourse=null;
+let selectedTeeKey=null;
+let courseRequestController=null;
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
   course:$('#course-name'),
   date:$('#round-date'),
+  courseSearchForm:$('#course-search-form'),
+  courseSearch:$('#course-search'),
+  courseSearchButton:$('#course-search-button'),
+  courseSearchStatus:$('#course-search-status'),
+  courseResults:$('#course-results'),
+  recentCourseSection:$('#recent-course-section'),
+  recentCourses:$('#recent-courses'),
+  selectedCoursePanel:$('#selected-course-panel'),
+  selectedCourseName:$('#selected-course-name'),
+  selectedCourseDetail:$('#selected-course-detail'),
+  teeSelector:$('#tee-selector'),
+  importCourseButton:$('#import-course-button'),
+  manualCourseButton:$('#manual-course-button'),
+  courseSourceNote:$('#course-source-note'),
   par:$('#hole-par'),
   holeDistance:$('#hole-distance'),
   holeSelector:$('#hole-selector'),
@@ -128,6 +151,7 @@ function currentHole(){ return round.holes[round.currentHole-1]; }
 function shotsForHole(hole=round.currentHole){ return round.shots.filter((shot)=>shot.hole===hole).sort((a,b)=>a.shotNumber-b.shotNumber); }
 function lastShot(hole=round.currentHole){ return shotsForHole(hole).at(-1)||null; }
 function titleCase(value=''){ return value.split('-').map((part)=>part?part[0].toUpperCase()+part.slice(1):'').join(' '); }
+function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,(character)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character])); }
 function formatSg(value){ const numeric=Number(value)||0; const rounded=Math.abs(numeric)<0.005?0:numeric; return `${rounded>0?'+':''}${rounded.toFixed(2)}`; }
 function rate(value){ return value===null?'—':`${Math.round(value*100)}%`; }
 function unitForLie(lie){ return lie==='green'?'feet':'yards'; }
@@ -179,6 +203,7 @@ function migrateRound(data){
   const base=defaultRound();
   if(!data) return base;
   base.courseName=data.courseName||'';
+  base.courseData=data.courseData||null;
   base.date=data.date||base.date;
   base.currentHole=Math.min(18,Math.max(1,Number(data.currentHole)||1));
   base.recentClubs={...base.recentClubs,...data.recentClubs};
@@ -220,6 +245,194 @@ function persist(message='Saved locally'){
   round.date=elements.date.value;
   localStorage.setItem(STORAGE_KEY,JSON.stringify(round));
   elements.saveStatus.textContent=message;
+}
+
+function courseLocation(course){
+  return [course.city,course.state].filter(Boolean).join(', ');
+}
+
+function teeLabel(tee){
+  return `${tee.name}${tee.gender?` · ${tee.gender}`:''}`;
+}
+
+function renderCourseSource(){
+  const source=round.courseData;
+  if(!source){
+    elements.courseSourceNote.classList.add('hidden');
+    elements.courseSourceNote.textContent='';
+    return;
+  }
+  const modified=source.modified?' Hole details have local edits.':'';
+  elements.courseSourceNote.innerHTML=`Scorecard loaded from <a href="${OPENGOLF_ATTRIBUTION.url}" target="_blank" rel="noopener">OpenGolfAPI</a> (${escapeHtml(source.teeName)} tees), licensed under <a href="${OPENGOLF_ATTRIBUTION.licenseUrl}" target="_blank" rel="noopener">ODbL 1.0</a>.${modified}`;
+  elements.courseSourceNote.classList.remove('hidden');
+}
+
+function renderRecentCourses(){
+  const recent=courseCache.recent();
+  elements.recentCourseSection.classList.toggle('hidden',recent.length===0);
+  elements.recentCourses.innerHTML=recent.map((item)=>`<button type="button" class="course-result-button" data-course-id="${escapeHtml(item.courseId)}" data-preferred-tee="${escapeHtml(item.teeKey)}"><strong>${escapeHtml(item.courseName)} · ${escapeHtml(item.teeName)}</strong><span>${escapeHtml(item.location)}${item.yardage?` · ${item.yardage} yd`:''}</span></button>`).join('');
+}
+
+function renderCourseResults(courses){
+  elements.courseResults.innerHTML=courses.length?courses.slice(0,20).map((course)=>{
+    const detail=[courseLocation(course),course.type,course.holes?`${course.holes} holes`:null].filter(Boolean).join(' · ');
+    return `<button type="button" class="course-result-button" data-course-id="${escapeHtml(course.id)}"><strong>${escapeHtml(course.name)}</strong><span>${escapeHtml(detail)}</span></button>`;
+  }).join(''):'';
+}
+
+function chooseTee(teeKey){
+  selectedTeeKey=teeKey;
+  elements.teeSelector.querySelectorAll('[data-tee-key]').forEach((button)=>{
+    const selected=button.dataset.teeKey===teeKey;
+    button.classList.toggle('selected',selected);
+    button.setAttribute('aria-pressed',String(selected));
+  });
+  const tee=selectedCourse?.tees.find((item)=>item.key===teeKey);
+  elements.importCourseButton.disabled=!tee||tee.usableHoleCount===0;
+}
+
+function renderSelectedCourse(preferredTeeKey=null){
+  if(!selectedCourse){
+    elements.selectedCoursePanel.classList.add('hidden');
+    return;
+  }
+  elements.selectedCourseName.textContent=selectedCourse.name;
+  elements.selectedCourseDetail.textContent=[courseLocation(selectedCourse),selectedCourse.type,`${selectedCourse.holeCount||18} holes`].filter(Boolean).join(' · ');
+  elements.teeSelector.innerHTML=selectedCourse.tees.length?selectedCourse.tees.map((tee)=>{
+    const details=[
+      tee.yardage?`${tee.yardage} yd`:null,
+      tee.rating?`Rating ${tee.rating}`:null,
+      tee.slope?`Slope ${tee.slope}`:null,
+      `${tee.usableHoleCount}/${selectedCourse.holeCount||18} yardages`
+    ].filter(Boolean).join(' · ');
+    return `<button type="button" class="tee-button" aria-pressed="false" data-tee-key="${escapeHtml(tee.key)}" ${tee.usableHoleCount?'':'disabled'}><strong>${escapeHtml(teeLabel(tee))}</strong><span>${escapeHtml(details)}</span></button>`;
+  }).join(''):'<p class="helper-text">This course does not currently include tee sets. You can still enter it manually.</p>';
+  elements.selectedCoursePanel.classList.remove('hidden');
+  const preferred=selectedCourse.tees.find((tee)=>tee.key===preferredTeeKey&&tee.usableHoleCount);
+  const best=selectedCourse.tees.filter((tee)=>tee.usableHoleCount).sort((a,b)=>b.usableHoleCount-a.usableHoleCount)[0];
+  selectedTeeKey=(preferred||best)?.key||null;
+  chooseTee(selectedTeeKey);
+}
+
+async function loadCourse(courseId,{preferredTeeKey=null}={}){
+  courseRequestController?.abort();
+  courseRequestController=new AbortController();
+  elements.courseSearchStatus.textContent='Loading course and tee data…';
+  elements.courseSearchButton.disabled=true;
+  try {
+    let course=courseCache.getCourse(courseId);
+    if(!course){
+      try {
+        course=await courseProvider.getCourse(courseId,{signal:courseRequestController.signal});
+        courseCache.setCourse(course);
+      } catch(error){
+        course=courseCache.getCourse(courseId,{allowExpired:true});
+        if(!course) throw error;
+        elements.courseSearchStatus.textContent='OpenGolfAPI is unavailable. Showing the last locally cached copy.';
+      }
+    }
+    selectedCourse=course;
+    renderSelectedCourse(preferredTeeKey);
+    if(!elements.courseSearchStatus.textContent.includes('cached')){
+      elements.courseSearchStatus.textContent=course.tees.length
+        ? 'Choose the tees you are playing.'
+        : 'No tee data is available for this course. Continue with manual entry.';
+    }
+    elements.selectedCoursePanel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  } catch(error){
+    if(error?.name!=='AbortError') elements.courseSearchStatus.textContent=error.message;
+  } finally {
+    elements.courseSearchButton.disabled=false;
+  }
+}
+
+async function searchCourses(){
+  const query=elements.courseSearch.value.trim();
+  if(query.length<2){
+    elements.courseSearchStatus.textContent='Enter at least two characters to search.';
+    return;
+  }
+  courseRequestController?.abort();
+  courseRequestController=new AbortController();
+  elements.courseSearchButton.disabled=true;
+  elements.courseSearchStatus.textContent='Searching OpenGolfAPI…';
+  elements.courseResults.innerHTML='';
+  selectedCourse=null;
+  selectedTeeKey=null;
+  elements.selectedCoursePanel.classList.add('hidden');
+  try {
+    let courses=courseCache.getSearch(query);
+    let cached=Boolean(courses);
+    if(!courses){
+      try {
+        courses=await courseProvider.searchCourses(query,{signal:courseRequestController.signal});
+        courseCache.setSearch(query,courses);
+      } catch(error){
+        courses=courseCache.getSearch(query,{allowExpired:true});
+        if(!courses) throw error;
+        cached=true;
+      }
+    }
+    renderCourseResults(courses);
+    elements.courseSearchStatus.textContent=courses.length
+      ? `${courses.length} course${courses.length===1?'':'s'} found${cached?' in the local cache':''}. Choose one to see its tees.`
+      : 'No matching courses were found. Try a broader search or continue with manual entry.';
+  } catch(error){
+    if(error?.name!=='AbortError') elements.courseSearchStatus.textContent=error.message;
+  } finally {
+    elements.courseSearchButton.disabled=false;
+  }
+}
+
+function importSelectedCourse(){
+  const tee=selectedCourse?.tees.find((item)=>item.key===selectedTeeKey);
+  if(!selectedCourse||!tee) return;
+  if(round.shots.length&&!confirm('Replace the current pars and tee yardages? Existing strokes will be recalculated from the imported tee positions.')) return;
+
+  let imported=0;
+  for(const importedHole of tee.holes){
+    const hole=round.holes[importedHole.number-1];
+    if(!hole) continue;
+    if(importedHole.par) hole.par=importedHole.par;
+    if(importedHole.yardage){
+      hole.teeDistance=importedHole.yardage;
+      imported+=1;
+    }
+    hole.draft=defaultDraft();
+  }
+  round.courseName=selectedCourse.name;
+  round.courseData={
+    provider:'opengolfapi',
+    courseId:selectedCourse.id,
+    courseName:selectedCourse.name,
+    teeKey:tee.key,
+    teeName:teeLabel(tee),
+    rating:tee.rating,
+    slope:tee.slope,
+    yardage:tee.yardage,
+    importedHoleCount:imported,
+    sourceLicense:OPENGOLF_ATTRIBUTION.license,
+    importedAt:new Date().toISOString(),
+    modified:false
+  };
+  round.holes.forEach((hole)=>recalculateHoleShots(hole.number));
+  courseCache.remember(selectedCourse,tee);
+  elements.course.value=round.courseName;
+  selectedZone=null;
+  selectedLocation=null;
+  editingShotId=null;
+  persist(`${imported} hole${imported===1?'':'s'} loaded`);
+  restoreDraft();
+  render();
+  renderRecentCourses();
+  const missing=Math.max(0,(selectedCourse.holeCount||18)-imported);
+  elements.courseSearchStatus.textContent=missing
+    ? `${imported} holes loaded from ${teeLabel(tee)} tees. ${missing} missing yardage${missing===1?'':'s'} can be entered manually.`
+    : `${imported} holes loaded from ${teeLabel(tee)} tees.`;
+}
+
+function markCourseModified(){
+  if(round.courseData) round.courseData.modified=true;
 }
 
 function selectButton(containerSelector,dataName,value){
@@ -761,6 +974,8 @@ function renderMissSummary(){
 function render(){
   elements.course.value=round.courseName;
   elements.date.value=round.date;
+  renderCourseSource();
+  renderRecentCourses();
   const totals=round.shots.reduce((sum,shot)=>sum+Number(shot.calculation.strokesGained||0),0);
   const driving=drivingSummary(round.shots);
   elements.total.textContent=formatSg(totals);
@@ -776,6 +991,10 @@ function render(){
 }
 
 document.addEventListener('click',(event)=>{
+  const courseButton=event.target.closest('[data-course-id]');
+  if(courseButton) loadCourse(courseButton.dataset.courseId,{preferredTeeKey:courseButton.dataset.preferredTee||null});
+  const teeButton=event.target.closest('[data-tee-key]');
+  if(teeButton) chooseTee(teeButton.dataset.teeKey);
   const holeButton=event.target.closest('[data-hole]');
   if(holeButton) switchHole(Number(holeButton.dataset.hole));
   const editButton=event.target.closest('[data-edit]');
@@ -804,6 +1023,25 @@ elements.form.addEventListener('submit',(event)=>{
   catch(error){ elements.message.textContent=error.message; }
 });
 
+elements.courseSearchForm.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  searchCourses();
+});
+elements.importCourseButton.addEventListener('click',importSelectedCourse);
+elements.manualCourseButton.addEventListener('click',()=>{
+  selectedCourse=null;
+  selectedTeeKey=null;
+  elements.selectedCoursePanel.classList.add('hidden');
+  elements.courseResults.innerHTML='';
+  if(round.courseData){
+    round.courseData=null;
+    persist('Manual course entry enabled');
+  }
+  renderCourseSource();
+  elements.courseSearchStatus.textContent='Manual entry is active. Existing course values remain editable and saved locally.';
+  elements.course.focus();
+});
+
 elements.shotType.addEventListener('change',()=>{ updateContext(); saveDraft(); });
 elements.reliefLie.addEventListener('change',saveDraft);
 [elements.startLie,elements.startDistance,elements.club,elements.endDistance,elements.intendedShape,elements.contact,elements.notes].forEach((element)=>{
@@ -812,6 +1050,7 @@ elements.reliefLie.addEventListener('change',saveDraft);
 });
 
 elements.par.addEventListener('change',()=>{
+  markCourseModified();
   const hole=currentHole();
   const previousPar=Number(hole.par);
   const nextPar=Number(elements.par.value);
@@ -830,6 +1069,7 @@ elements.par.addEventListener('change',()=>{
 });
 
 elements.holeDistance.addEventListener('change',()=>{
+  markCourseModified();
   const hole=currentHole();
   hole.teeDistance=Number(elements.holeDistance.value);
   if(shotsForHole().length) recalculateHoleShots();
@@ -841,7 +1081,11 @@ elements.holeDistance.addEventListener('change',()=>{
 });
 
 [elements.course,elements.date].forEach((element)=>{
-  element.addEventListener('change',()=>persist());
+  element.addEventListener('change',()=>{
+    if(element===elements.course) markCourseModified();
+    persist();
+    renderCourseSource();
+  });
   element.addEventListener('input',()=>{ elements.saveStatus.textContent='Unsaved changes'; });
 });
 
@@ -856,6 +1100,11 @@ $('#new-round-button').addEventListener('click',()=>{
   selectedZone=null;
   selectedLocation=null;
   editingShotId=null;
+  selectedCourse=null;
+  selectedTeeKey=null;
+  elements.courseResults.innerHTML='';
+  elements.selectedCoursePanel.classList.add('hidden');
+  elements.courseSearchStatus.textContent='Search is optional. Manual course name, pars, and yardages always remain editable.';
   restoreDraft();
   render();
 });
