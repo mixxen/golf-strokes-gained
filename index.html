@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#123c2d">
   <title>Golf Strokes Gained</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="benchmark.css">
 </head>
 <body>
   <header class="app-header">
@@ -39,6 +40,29 @@
       <article class="metric-card"><span>Fairways</span><strong id="fairway-rate">—</strong></article>
       <article class="metric-card"><span>Playable</span><strong id="playable-rate">—</strong></article>
       <article class="metric-card"><span>Drive penalties</span><strong id="drive-penalties">0</strong></article>
+    </section>
+
+    <section class="panel benchmark-panel" aria-labelledby="benchmark-heading">
+      <div class="benchmark-heading">
+        <div>
+          <p class="eyebrow">Comparison baseline</p>
+          <h2 id="benchmark-heading">PGA TOUR — Broadie 2003–2010</h2>
+        </div>
+        <span class="benchmark-badge">Historical · unadjusted</span>
+      </div>
+      <p>Every stroke is compared with the expected number of strokes a PGA TOUR player needed to hole out from the same lie and distance in Mark Broadie’s published ShotLink benchmark.</p>
+      <div class="benchmark-equation" aria-label="Strokes gained equation">SG = J(start lie, distance) − 1 − J(finish lie, distance)</div>
+      <details class="benchmark-details">
+        <summary>Method, lie mapping, and references</summary>
+        <p>Off-green values come from Broadie’s Table B.1, estimated from more than eight million PGA TOUR ShotLink strokes from 2003–2010. Putting values use Broadie’s published PGA TOUR putting table.</p>
+        <p><strong>Lie mapping:</strong> fairway and greenside bunkers use the sand curve. Deep rough with a direct route uses rough. Use Trees / recovery only when the direct route is obstructed. Fringe currently uses the fairway curve because the public benchmark has no separate fringe condition.</p>
+        <p><strong>Distance handling:</strong> values are linearly interpolated between published points. Distances outside the published range use the nearest endpoint rather than undocumented extrapolation; the detailed methodology documents this limitation.</p>
+        <p><strong>Scope:</strong> these are historical, unadjusted shot values. They do not reproduce the current official PGA TOUR statistic’s event, course, round, or field adjustment.</p>
+        <div class="source-links">
+          <a href="https://business.columbia.edu/sites/default/files-efs/pubfiles/4996/assessing_golfer_performance.full.pdf" target="_blank" rel="noopener">Broadie 2012 — off-green benchmark</a>
+          <a href="https://www.columbia.edu/~mnb2/broadie/Assets/putting_strokes_gained_20110113.pdf" target="_blank" rel="noopener">Broadie 2011 — putting benchmark</a>
+        </div>
+      </details>
     </section>
 
     <section class="panel" id="shot-entry-panel">
@@ -125,7 +149,7 @@
     </section>
   </main>
 
-  <footer>The strokes-gained formula and penalty accounting are validated by automated tests. The bundled expected-strokes benchmark remains an approximate prototype reference.</footer>
+  <footer>Benchmark: PGA TOUR — Broadie 2003–2010. Historical and unadjusted for course, round, and field difficulty. Distances outside the published range use the nearest endpoint.</footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
