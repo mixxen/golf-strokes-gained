@@ -1,51 +1,148 @@
-export const BENCHMARK_VERSION = "prototype-pga-v2";
+import {
+  BENCHMARKS,
+  BENCHMARK_VERSION,
+  BROADIE_BENCHMARK
+} from './benchmark-broadie.js';
 
-// Approximate reference values used by the prototype. The calculation engine is
-// independent from this table so an authoritative benchmark can replace it.
-export const BENCHMARKS = {
-  tee:[[100,2.92],[150,3.05],[200,3.22],[250,3.45],[300,3.72],[350,3.98],[400,4.20],[450,4.42],[500,4.65],[550,4.88],[600,5.10]],
-  fairway:[[10,2.14],[20,2.40],[30,2.48],[50,2.62],[75,2.75],[100,2.88],[125,3.00],[150,3.13],[175,3.26],[200,3.42],[225,3.58],[250,3.75],[300,4.05]],
-  rough:[[5,2.15],[10,2.31],[20,2.55],[30,2.64],[50,2.78],[75,2.93],[100,3.08],[125,3.22],[150,3.37],[175,3.52],[200,3.68],[225,3.84],[250,4.00],[300,4.30]],
-  sand:[[5,2.37],[10,2.45],[20,2.73],[30,2.83],[50,3.00],[75,3.18],[100,3.36],[125,3.53],[150,3.70],[175,3.87],[200,4.05]],
-  recovery:[[20,2.85],[50,3.10],[75,3.32],[100,3.52],[125,3.70],[150,3.90],[175,4.08],[200,4.25]],
-  green:[[1,1.00],[2,1.05],[3,1.15],[4,1.28],[5,1.40],[6,1.50],[8,1.65],[10,1.78],[15,2.00],[20,2.15],[30,2.35],[40,2.50],[60,2.70],[90,2.95]]
-};
+export { BENCHMARKS, BENCHMARK_VERSION, BROADIE_BENCHMARK };
 
-export const LOCATION_TO_LIE = {
+export const LOCATION_TO_LIE = Object.freeze({
   fairway:"fairway",
   "first-cut":"rough",
   rough:"rough",
-  "deep-rough":"recovery",
+
+  // Broadie's recovery condition means the route to the hole is obstructed.
+  // Deep rough with a direct shot remains rough.
+  "deep-rough":"rough",
+
   "fairway-bunker":"sand",
   "greenside-bunker":"sand",
+
+  // Broadie's public table has no separate fringe condition. Fairway is the
+  // documented proxy until a dedicated fringe benchmark is added.
   fringe:"fairway",
+
   recovery:"recovery",
   "penalty-area":"rough",
   unplayable:"rough",
   "out-of-bounds":"tee",
   green:"green",
   holed:"holed"
-};
+});
 
-export function expectedStrokes(lie, distance, benchmarks = BENCHMARKS) {
-  if (lie === "holed") return 0;
+export function expectedStrokesLookup(lie, distance, benchmarks = BENCHMARKS) {
+  if (lie === "holed") {
+    return {
+      value:0,
+      lie:"holed",
+      distance:0,
+      method:"holed",
+      clamped:false,
+      publishedMin:0,
+      publishedMax:0
+    };
+  }
+
   const table = benchmarks[lie];
   if (!table) throw new Error(`No benchmark data for ${lie}`);
 
   const value = Number(distance);
   if (!Number.isFinite(value) || value < 0) throw new Error("Distance must be non-negative");
-  if (value <= table[0][0]) return table[0][1];
-  if (value >= table.at(-1)[0]) return table.at(-1)[1];
+
+  const first = table[0];
+  const last = table.at(-1);
+
+  if (value < first[0]) {
+    return {
+      value:first[1],
+      lie,
+      distance:value,
+      method:"clamped-low",
+      clamped:true,
+      lowerDistance:first[0],
+      upperDistance:first[0],
+      publishedMin:first[0],
+      publishedMax:last[0]
+    };
+  }
+
+  if (value === first[0]) {
+    return {
+      value:first[1],
+      lie,
+      distance:value,
+      method:"exact",
+      clamped:false,
+      lowerDistance:first[0],
+      upperDistance:first[0],
+      publishedMin:first[0],
+      publishedMax:last[0]
+    };
+  }
+
+  if (value > last[0]) {
+    return {
+      value:last[1],
+      lie,
+      distance:value,
+      method:"clamped-high",
+      clamped:true,
+      lowerDistance:last[0],
+      upperDistance:last[0],
+      publishedMin:first[0],
+      publishedMax:last[0]
+    };
+  }
 
   for (let index = 1; index < table.length; index += 1) {
     const [upperDistance, upperExpected] = table[index];
     const [lowerDistance, lowerExpected] = table[index - 1];
-    if (value <= upperDistance) {
+
+    if (value === upperDistance) {
+      return {
+        value:upperExpected,
+        lie,
+        distance:value,
+        method:"exact",
+        clamped:false,
+        lowerDistance:upperDistance,
+        upperDistance,
+        publishedMin:first[0],
+        publishedMax:last[0]
+      };
+    }
+
+    if (value < upperDistance) {
       const ratio = (value - lowerDistance) / (upperDistance - lowerDistance);
-      return lowerExpected + ratio * (upperExpected - lowerExpected);
+      return {
+        value:lowerExpected + ratio * (upperExpected - lowerExpected),
+        lie,
+        distance:value,
+        method:"interpolated",
+        clamped:false,
+        lowerDistance,
+        upperDistance,
+        publishedMin:first[0],
+        publishedMax:last[0]
+      };
     }
   }
-  return table.at(-1)[1];
+
+  return {
+    value:last[1],
+    lie,
+    distance:value,
+    method:"exact",
+    clamped:false,
+    lowerDistance:last[0],
+    upperDistance:last[0],
+    publishedMin:first[0],
+    publishedMax:last[0]
+  };
+}
+
+export function expectedStrokes(lie, distance, benchmarks = BENCHMARKS) {
+  return expectedStrokesLookup(lie, distance, benchmarks).value;
 }
 
 export function missParts(zone = "target") {
@@ -97,7 +194,7 @@ export function calculateShot({
   finishLie,
   penalty
 }) {
-  const expectedBefore = expectedStrokes(startLie, startDistance);
+  const beforeLookup = expectedStrokesLookup(startLie, startDistance);
   const finish = resolveFinishPosition({
     startLie,
     startDistance,
@@ -106,22 +203,27 @@ export function calculateShot({
     finishLie,
     penalty
   });
-  const expectedAfter = expectedStrokes(finish.benchmarkLie, finish.endDistance);
+  const afterLookup = expectedStrokesLookup(finish.benchmarkLie, finish.endDistance);
   const penaltyStrokes = Number(penalty?.strokes || 0);
   const strokeCost = 1 + penaltyStrokes;
 
   return {
     benchmarkLie:finish.benchmarkLie,
     endDistance:finish.endDistance,
-    expectedBefore,
-    expectedAfter,
+    expectedBefore:beforeLookup.value,
+    expectedAfter:afterLookup.value,
     penaltyStrokes,
     strokeCost,
-    strokesGained:expectedBefore - strokeCost - expectedAfter
+    strokesGained:beforeLookup.value - strokeCost - afterLookup.value,
+    benchmarkVersion:BENCHMARK_VERSION,
+    benchmarkLookup:{
+      before:beforeLookup,
+      after:afterLookup
+    }
   };
 }
 
-export function inferShotType({ lie, distance, par, shotNumber }) {
+export function inferShotType({ lie, distance, par }) {
   if (lie === "green") return "putt";
   if (lie === "tee") return Number(par) >= 4 ? "drive" : "approach";
   if (Number(distance) <= 30) return "chip";
@@ -144,12 +246,22 @@ export function shotCost(shot) {
 export function summarizeHole(shots, { par, teeDistance } = {}) {
   const ordered = [...shots].sort((a,b)=>a.shotNumber-b.shotNumber);
   const physicalStrokes = ordered.length;
-  const penaltyStrokes = ordered.reduce((sum, shot)=>sum + Number(shot?.calculation?.penaltyStrokes ?? shot?.penalty?.strokes ?? 0), 0);
+  const penaltyStrokes = ordered.reduce(
+    (sum, shot)=>sum + Number(shot?.calculation?.penaltyStrokes ?? shot?.penalty?.strokes ?? 0),
+    0
+  );
   const score = physicalStrokes + penaltyStrokes;
-  const strokesGained = ordered.reduce((sum, shot)=>sum + Number(shot?.calculation?.strokesGained || 0), 0);
+  const strokesGained = ordered.reduce(
+    (sum, shot)=>sum + Number(shot?.calculation?.strokesGained || 0),
+    0
+  );
   const complete = ordered.at(-1)?.finish?.location === "holed";
-  const expectedFromTee = Number.isFinite(Number(teeDistance)) ? expectedStrokes("tee", Number(teeDistance)) : null;
-  const identityStrokesGained = complete && expectedFromTee !== null ? expectedFromTee - score : null;
+  const expectedFromTee = Number.isFinite(Number(teeDistance))
+    ? expectedStrokes("tee", Number(teeDistance))
+    : null;
+  const identityStrokesGained = complete && expectedFromTee !== null
+    ? expectedFromTee - score
+    : null;
 
   return {
     physicalStrokes,
@@ -161,7 +273,9 @@ export function summarizeHole(shots, { par, teeDistance } = {}) {
     complete,
     expectedFromTee,
     identityStrokesGained,
-    identityError:identityStrokesGained === null ? null : strokesGained - identityStrokesGained
+    identityError:identityStrokesGained === null
+      ? null
+      : strokesGained - identityStrokesGained
   };
 }
 
