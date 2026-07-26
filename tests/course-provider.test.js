@@ -81,3 +81,31 @@ test('tees with partial data remain visible and report usable yardages',()=>{
   assert.equal(course.tees[0].usableHoleCount,1);
   assert.equal(course.tees[0].holes[1].yardage,null);
 });
+
+test('normalizes scorecard and tee-local hole layouts used by alternate API responses',()=>{
+  const course=normalizeCourseDetail({
+    course:{
+      id:'course-wrapped',
+      course_name:'Wrapped Links',
+      hole_count:9,
+      scorecard:[
+        {hole:1,par:4,handicap:1},
+        {hole:2,par:3,handicap:9}
+      ],
+      tees:[{
+        tee_key:'blue-male',
+        tee_name:'Blue',
+        holes:[
+          {hole:1,yards:412},
+          {hole:2,distance_yards:168}
+        ]
+      }]
+    }
+  });
+
+  assert.equal(course.holeCount,9);
+  assert.deepEqual(course.tees[0].holes,[
+    {number:1,par:4,handicap:1,yardage:412},
+    {number:2,par:3,handicap:9,yardage:168}
+  ]);
+});

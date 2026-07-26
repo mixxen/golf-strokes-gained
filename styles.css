@@ -208,9 +208,11 @@ legend { padding:0 .4rem; color:var(--brand); font-weight:800; }
 }
 .hole-button strong { font-size:1rem; }
 .hole-button span { font-size:.65rem; color:var(--muted); }
+.hole-button small { font-size:.58rem; color:var(--muted); white-space:nowrap; }
 .hole-button.has-shots::after { content:""; position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%; background:var(--positive); }
 .hole-button.selected { background:var(--brand); border-color:var(--brand); color:white; }
 .hole-button.selected span { color:rgb(255 255 255 / 72%); }
+.hole-button.selected small { color:rgb(255 255 255 / 72%); }
 .hole-button.complete::after { width:8px; height:8px; box-shadow:0 0 0 2px white; }
 
 .hole-settings {
