@@ -41,6 +41,9 @@ The adapter joins each tee to hole yardages by normalized tee color, then tee na
 - Cache size is capped to the 20 latest searches and 12 latest course details.
 - The six latest imported course/tee combinations are shown as recent shortcuts.
 - Storage failures never prevent live lookup or manual entry.
+- Tee sets remain selectable when the provider has hole pars but no tee-specific
+  yardages. In that case, pars are imported and existing hole yardages remain editable;
+  the app does not fabricate yardages from the tee's total length.
 
 The cache uses `localStorage`; it is device- and browser-specific.
 
@@ -54,6 +57,16 @@ Importing a tee set:
 4. Records source, license, selected tee, rating, slope, and import time.
 5. Recalculates recorded strokes if the user confirms an import into an active round.
 6. Marks provenance as locally modified after a manual course, par, or yardage edit.
+
+The selected course and tee key are stored with the round. On reload, the app restores
+the course detail from its local cache (or OpenGolfAPI when needed) and renders the tee
+selector again. Selecting a different tee on the active course immediately reapplies
+the scorecard and saves the new tee key. If strokes already exist, the app asks before
+recalculating them against the replacement tee positions.
+
+Manual fallback is hole based: users can edit every hole's par and tee distance without
+selecting a directory course. The UI does not maintain a separate free-text course-name
+field.
 
 ## Attribution and license
 

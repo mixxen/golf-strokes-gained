@@ -5,7 +5,7 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 ## Current capabilities
 
 - Persistent 18-hole scorecard with per-hole par and tee distance
-- OpenGolfAPI course search, tee selection, and scorecard import
+- OpenGolfAPI course search, persistent tee selection, scorecard import, and tee switching
 - Local course cache, recent courses, offline fallback, and manual entry
 - Sequential stroke entry: every finish becomes the next starting position
 - Automatic drive, approach, short-game, and putting inference
@@ -19,7 +19,7 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 
 Course lookup is provided by [OpenGolfAPI](https://opengolfapi.org/). The app searches the anonymous, browser-accessible API, then normalizes provider-specific data through `js/course-providers/opengolfapi.js`. Other app code works with the normalized course, tee, and hole shape so a different provider can be substituted later.
 
-After choosing a course and tee set, the app imports every available hole par and tee yardage. Course and search responses are cached in the browser, and the six most recently used course/tee combinations are shown as shortcuts. When the network or provider is unavailable, a cached copy is used when possible. Course name, par, and yardage fields always remain editable for missing or incorrect data.
+After choosing a course and tee set, the app imports every available hole par and tee yardage. The selected course and tees are restored after a refresh. Choosing another tee set on the loaded course immediately reapplies its pars and yardages and persists the new selection. Course and search responses are cached in the browser, and the six most recently used course/tee combinations are shown as shortcuts. When the network or provider is unavailable, a cached copy is used when possible. Hole-level par and yardage fields remain editable for missing or incorrect data; a separate free-text course-name field is intentionally not shown.
 
 Course data is licensed separately from the application code:
 
@@ -31,6 +31,7 @@ Known limitations:
 
 - OpenGolfAPI is currently focused on U.S. courses.
 - Community-maintained scorecards may be missing, incomplete, or outdated.
+- When a tee has pars but no tee-specific hole yardages, it remains selectable; the app loads the pars and clearly leaves each missing yardage for manual entry.
 - Tee colors are used to connect tee records to each hole’s yardage map; unusual combination-tee naming may require manual correction.
 - The static GitHub Pages app uses anonymous API access and is subject to provider rate limits.
 - Course data is cached only in the current browser and does not sync between devices.
