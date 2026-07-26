@@ -18,7 +18,8 @@ test('benchmark methodology documents mappings and range limits',async()=>{
   const methodology=await read('docs/strokes-gained-methodology.md');
   assert.match(methodology,/Deep rough, direct route available \| Rough/);
   assert.match(methodology,/Trees \/ recovery \| Recovery/);
-  assert.match(methodology,/sub-10-yard short-game results currently use the 10-yard endpoint/);
+  assert.match(methodology,/off-green table begins at 10 yards/);
+  assert.match(methodology,/use the 10-yard endpoint/);
   assert.match(methodology,/−0\.585/);
 });
 
