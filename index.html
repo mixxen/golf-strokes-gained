@@ -17,24 +17,21 @@
   <main>
     <section class="panel">
       <div class="section-heading"><div><p class="eyebrow">Round</p><h2>Setup</h2></div><p id="save-status" class="status-text">Saved locally</p></div>
-      <div class="form-grid round-grid">
-        <label>Course<input id="course-name" type="text" placeholder="Course name"></label>
-        <label>Date<input id="round-date" type="date"></label>
-      </div>
+      <div class="form-grid round-grid"><label>Date<input id="round-date" type="date"></label></div>
       <div class="course-tools">
         <div class="course-tool-heading">
           <div>
-            <h3>Load a scorecard</h3>
-            <p>Search OpenGolfAPI to fill every available hole, or keep entering the course manually.</p>
+            <h3>Find a course</h3>
+            <p>Search OpenGolfAPI, choose a tee set, and load its scorecard.</p>
           </div>
-          <button id="manual-course-button" class="text-button" type="button">Use manual entry</button>
+          <button id="manual-course-button" class="text-button" type="button">Enter holes manually</button>
         </div>
         <form id="course-search-form" class="course-search-form" role="search">
           <label class="course-search-label">Course name, city, or state
             <span class="search-control"><input id="course-search" type="search" minlength="2" autocomplete="off" placeholder="e.g. Pebble Beach"><button id="course-search-button" class="primary-button" type="submit">Search</button></span>
           </label>
         </form>
-        <p id="course-search-status" class="helper-text" aria-live="polite">Search is optional. Manual course name, pars, and yardages always remain editable.</p>
+        <p id="course-search-status" class="helper-text" aria-live="polite">Search is optional. You can always edit each hole's par and tee distance below.</p>
         <div id="recent-course-section" class="course-subsection hidden">
           <h4>Recent courses</h4>
           <div id="recent-courses" class="course-result-list"></div>
