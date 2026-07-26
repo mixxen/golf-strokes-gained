@@ -1,4 +1,6 @@
-const CACHE_KEY='golf-strokes-gained-course-cache-v1';
+// Bump when normalized course objects change so old cached scorecards cannot
+// silently appear selectable while carrying no usable hole data.
+const CACHE_KEY='golf-strokes-gained-course-cache-v2';
 const RECENT_KEY='golf-strokes-gained-recent-courses-v1';
 const SEARCH_TTL=24*60*60*1000;
 const COURSE_TTL=30*24*60*60*1000;

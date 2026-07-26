@@ -13,8 +13,9 @@ import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,savedTeeKey,teeIsSelectable} from './course-round.js';
 
-const STORAGE_KEY='golf-strokes-gained-round-v7';
+const STORAGE_KEY='golf-strokes-gained-round-v8';
 const PRIOR_KEYS=[
+  'golf-strokes-gained-round-v7',
   'golf-strokes-gained-round-v6',
   'golf-strokes-gained-round-v5',
   'golf-strokes-gained-round-v4',
@@ -55,10 +56,11 @@ const defaultDraft=()=>({
 });
 const defaultHole=(number)=>({number,par:4,teeDistance:400,draft:defaultDraft()});
 const defaultRound=()=>({
-  schemaVersion:7,
+  schemaVersion:8,
   courseName:'',
   courseData:null,
   date:localDate(),
+  holeCount:18,
   currentHole:1,
   holes:Array.from({length:18},(_,index)=>defaultHole(index+1)),
   shots:[],
@@ -206,7 +208,8 @@ function migrateRound(data){
   base.courseName=data.courseName||'';
   base.courseData=data.courseData||null;
   base.date=data.date||base.date;
-  base.currentHole=Math.min(18,Math.max(1,Number(data.currentHole)||1));
+  base.holeCount=Math.min(18,Math.max(1,Number(data.holeCount||data.courseData?.holeCount)||18));
+  base.currentHole=Math.min(base.holeCount,Math.max(1,Number(data.currentHole)||1));
   base.recentClubs={...base.recentClubs,...data.recentClubs};
   if(Array.isArray(data.holes)){
     base.holes=base.holes.map((hole,index)=>({
@@ -395,7 +398,7 @@ function importSelectedCourse({teeKey=selectedTeeKey}={}){
   if(!selectedCourse||!tee) return false;
   if(round.shots.length&&!confirm('Replace the current pars and tee yardages? Existing strokes will be recalculated from the imported tee positions.')) return false;
 
-  const {imported,updated,missing}=applyCourseTee(round,selectedCourse,tee,{
+  const {imported,updated,missing,missingHoleNumbers}=applyCourseTee(round,selectedCourse,tee,{
     makeDraft:defaultDraft,
     attribution:OPENGOLF_ATTRIBUTION
   });
@@ -411,7 +414,7 @@ function importSelectedCourse({teeKey=selectedTeeKey}={}){
   renderRecentCourses();
   chooseTee(tee.key);
   elements.courseSearchStatus.textContent=missing
-    ? `${updated} pars and ${imported} tee yardages loaded from ${teeLabel(tee)} tees. Enter the ${missing} missing yardage${missing===1?'':'s'} per hole.`
+    ? `${updated} pars and ${imported} tee yardages loaded from ${teeLabel(tee)} tees. Enter yardage manually for hole${missing===1?'':'s'} ${missingHoleNumbers.join(', ')}.`
     : `${imported} holes loaded from ${teeLabel(tee)} tees.`;
   return true;
 }
@@ -896,7 +899,7 @@ function undoHole(){
 }
 
 function nextIncompleteHole(){
-  for(let hole=round.currentHole+1;hole<=18;hole+=1) if(!holeIsComplete(hole)) return hole;
+  for(let hole=round.currentHole+1;hole<=round.holeCount;hole+=1) if(!holeIsComplete(hole)) return hole;
   for(let hole=1;hole<round.currentHole;hole+=1) if(!holeIsComplete(hole)) return hole;
   return null;
 }
@@ -930,9 +933,11 @@ function finishDescription(shot){
 }
 
 function renderHoleSelector(){
-  elements.holeSelector.innerHTML=round.holes.map((hole)=>{
+  elements.holeSelector.innerHTML=round.holes.slice(0,round.holeCount).map((hole)=>{
     const summary=holeSummary(hole.number);
-    return `<button type="button" role="tab" aria-selected="${hole.number===round.currentHole}" class="hole-button ${hole.number===round.currentHole?'selected':''} ${summary.score?'has-shots':''} ${summary.complete?'complete':''}" data-hole="${hole.number}"><strong>${hole.number}</strong><span>${summary.complete?'✓':summary.score||'—'}</span></button>`;
+    const score=summary.complete?'✓':summary.score?`Score ${summary.score}`:'';
+    const detail=`Par ${hole.par} · ${hole.teeDistance} yd${score?` · ${score}`:''}`;
+    return `<button type="button" role="tab" aria-selected="${hole.number===round.currentHole}" aria-label="Hole ${hole.number}, ${detail}" title="${detail}" class="hole-button ${hole.number===round.currentHole?'selected':''} ${summary.score?'has-shots':''} ${summary.complete?'complete':''}" data-hole="${hole.number}"><strong>${hole.number}</strong><span>Par ${hole.par}</span><small>${hole.teeDistance} yd${summary.complete?' · ✓':''}</small></button>`;
   }).join('');
 }
 
