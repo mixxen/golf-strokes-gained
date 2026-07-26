@@ -5,6 +5,8 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 ## Current capabilities
 
 - Persistent 18-hole scorecard with per-hole par and tee distance
+- OpenGolfAPI course search, tee selection, and scorecard import
+- Local course cache, recent courses, offline fallback, and manual entry
 - Sequential stroke entry: every finish becomes the next starting position
 - Automatic drive, approach, short-game, and putting inference
 - Nine-zone directional miss capture
@@ -12,6 +14,26 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 - Per-hole editing, deletion, undo, scoring, and completion flow
 - Local browser persistence with schema migration and recalculation
 - GitHub Pages deployment and automated calculation tests
+
+## Course directory
+
+Course lookup is provided by [OpenGolfAPI](https://opengolfapi.org/). The app searches the anonymous, browser-accessible API, then normalizes provider-specific data through `js/course-providers/opengolfapi.js`. Other app code works with the normalized course, tee, and hole shape so a different provider can be substituted later.
+
+After choosing a course and tee set, the app imports every available hole par and tee yardage. Course and search responses are cached in the browser, and the six most recently used course/tee combinations are shown as shortcuts. When the network or provider is unavailable, a cached copy is used when possible. Course name, par, and yardage fields always remain editable for missing or incorrect data.
+
+Course data is licensed separately from the application code:
+
+- **Source:** OpenGolfAPI
+- **License:** [Open Data Commons Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/)
+- **Attribution:** “OpenGolfAPI, ODbL”
+
+Known limitations:
+
+- OpenGolfAPI is currently focused on U.S. courses.
+- Community-maintained scorecards may be missing, incomplete, or outdated.
+- Tee colors are used to connect tee records to each hole’s yardage map; unusual combination-tee naming may require manual correction.
+- The static GitHub Pages app uses anonymous API access and is subject to provider rate limits.
+- Course data is cached only in the current browser and does not sync between devices.
 
 ## Implemented benchmark
 
