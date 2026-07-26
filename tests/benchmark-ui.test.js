@@ -30,14 +30,17 @@ test('static page contains no duplicate ids',async()=>{
   assert.deepEqual(duplicates,[]);
 });
 
-test('course lookup UI includes manual fallback and ODbL attribution',async()=>{
+test('course lookup UI includes hole-level manual fallback and no separate course-name field',async()=>{
   const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
   assert.match(html,/id="course-search-form"/);
   assert.match(html,/id="tee-selector"/);
-  assert.match(html,/Use manual entry/);
+  assert.match(html,/Enter holes manually/);
+  assert.doesNotMatch(html,/id="course-name"/);
   assert.match(html,/OpenGolfAPI/);
   assert.match(html,/ODbL 1\.0/);
   assert.match(app,/createOpenGolfApiProvider/);
   assert.match(app,/createCourseCache/);
   assert.match(app,/courseData/);
+  assert.match(app,/preferredTeeKey:round\.courseData\.teeKey/);
+  assert.match(app,/changingLoadedCourse/);
 });
