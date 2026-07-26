@@ -2,9 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BENCHMARKS,
+  BENCHMARK_VERSION,
+  BROADIE_BENCHMARK,
+  LOCATION_TO_LIE,
   calculateShot,
   drivingSummary,
   expectedStrokes,
+  expectedStrokesLookup,
   inferShotType,
   missParts,
   nextShotStart,
@@ -43,17 +47,58 @@ function makeShot({shotNumber,start,finishLocation,endDistance,finishLie,penalty
   };
 }
 
-test('interpolates expected strokes',()=>{
-  closeTo(expectedStrokes('tee',125),2.985);
+test('identifies the published Broadie benchmark',()=>{
+  assert.equal(BENCHMARK_VERSION,'broadie-pga-tour-2003-2010-v1');
+  assert.equal(BROADIE_BENCHMARK.period,'2003–2010');
+  assert.match(BROADIE_BENCHMARK.adjustment,/Unadjusted/);
 });
 
-test('benchmark distances and expected strokes are monotonic',()=>{
+test('matches published Broadie off-green golden values',()=>{
+  assert.equal(expectedStrokes('tee',400),3.99);
+  assert.equal(expectedStrokes('fairway',120),2.85);
+  assert.equal(expectedStrokes('rough',120),3.08);
+  assert.equal(expectedStrokes('sand',20),2.53);
+  assert.equal(expectedStrokes('recovery',20),3.51);
+});
+
+test('matches published Broadie putting golden values',()=>{
+  assert.equal(expectedStrokes('green',2),1.01);
+  assert.equal(expectedStrokes('green',5),1.24);
+  assert.equal(expectedStrokes('green',10),1.61);
+  assert.equal(expectedStrokes('green',20),1.87);
+  assert.equal(expectedStrokes('green',90),2.36);
+});
+
+test('linearly interpolates between published points',()=>{
+  closeTo(expectedStrokes('fairway',150),2.945);
+  closeTo(expectedStrokes('tee',150),2.98);
+});
+
+test('marks endpoint clamping without inventing unpublished values',()=>{
+  const shortFairway=expectedStrokesLookup('fairway',5);
+  assert.equal(shortFairway.value,2.18);
+  assert.equal(shortFairway.method,'clamped-low');
+  assert.equal(shortFairway.clamped,true);
+
+  const longPutt=expectedStrokesLookup('green',100);
+  assert.equal(longPutt.value,2.36);
+  assert.equal(longPutt.method,'clamped-high');
+  assert.equal(longPutt.clamped,true);
+});
+
+test('benchmark distances are strictly increasing',()=>{
   for(const [lie,table] of Object.entries(BENCHMARKS)){
     for(let index=1;index<table.length;index+=1){
       assert.ok(table[index][0]>table[index-1][0],`${lie} distances must increase`);
-      assert.ok(table[index][1]>=table[index-1][1],`${lie} expected strokes must not decrease`);
     }
   }
+});
+
+test('uses rough for deep rough and recovery only for an obstructed route',()=>{
+  assert.equal(LOCATION_TO_LIE['deep-rough'],'rough');
+  assert.equal(LOCATION_TO_LIE.recovery,'recovery');
+  assert.equal(LOCATION_TO_LIE['greenside-bunker'],'sand');
+  assert.equal(LOCATION_TO_LIE['fairway-bunker'],'sand');
 });
 
 test('parses all dimensions of a miss',()=>{
@@ -61,7 +106,7 @@ test('parses all dimensions of a miss',()=>{
   assert.deepEqual(missParts('left'),{zone:'left',depth:'target',lateral:'left'});
 });
 
-test('uses start minus cost minus finish for a normal shot',()=>{
+test('uses Broadies start minus one minus finish equation',()=>{
   const result=calculateShot({
     startLie:'fairway',
     startDistance:150,
@@ -69,8 +114,46 @@ test('uses start minus cost minus finish for a normal shot',()=>{
     endDistance:20,
     penalty:null
   });
+  closeTo(result.expectedBefore,2.945);
+  closeTo(result.expectedAfter,1.87);
+  closeTo(result.strokesGained,0.075);
   closeTo(result.strokesGained,result.expectedBefore-1-result.expectedAfter);
   assert.equal(result.strokeCost,1);
+});
+
+test('values a 150-yard fairway miss into a 20-yard bunker at -0.585',()=>{
+  const result=calculateShot({
+    startLie:'fairway',
+    startDistance:150,
+    finishLocation:'greenside-bunker',
+    endDistance:20,
+    penalty:null
+  });
+  assert.equal(result.benchmarkLie,'sand');
+  closeTo(result.strokesGained,-0.585);
+});
+
+test('values a 150-yard fairway miss into a 40-yard bunker at -0.875',()=>{
+  const result=calculateShot({
+    startLie:'fairway',
+    startDistance:150,
+    finishLocation:'greenside-bunker',
+    endDistance:40,
+    penalty:null
+  });
+  closeTo(result.strokesGained,-0.875);
+});
+
+test('classifies Broadies 60-yard shot into a 20-yard bunker as awful',()=>{
+  const result=calculateShot({
+    startLie:'fairway',
+    startDistance:60,
+    finishLocation:'greenside-bunker',
+    endDistance:20,
+    penalty:null
+  });
+  closeTo(result.strokesGained,-0.83);
+  assert.ok(result.strokesGained<-0.8);
 });
 
 test('applies a lateral penalty and the actual relief lie',()=>{
@@ -120,7 +203,7 @@ test('resolves an unplayable ball to the selected relief position',()=>{
 test('infers shots in playing order',()=>{
   assert.equal(inferShotType({lie:'tee',distance:410,par:4,shotNumber:1}),'drive');
   assert.equal(inferShotType({lie:'tee',distance:410,par:4,shotNumber:2}),'drive');
-  assert.equal(inferShotType({lie:'tee',distance:25,par:3,shotNumber:1}),'approach');
+  assert.equal(inferShotType({lie:'tee',distance:170,par:3,shotNumber:1}),'approach');
   assert.equal(inferShotType({lie:'fairway',distance:155,par:4,shotNumber:2}),'approach');
   assert.equal(inferShotType({lie:'rough',distance:22,par:4,shotNumber:3}),'chip');
   assert.equal(inferShotType({lie:'green',distance:14,par:4,shotNumber:4}),'putt');
@@ -144,9 +227,15 @@ test('uses the replay position after out of bounds',()=>{
   assert.deepEqual(nextShotStart(shot),{lie:'tee',distance:400,unit:'yards'});
 });
 
-test('calculates a holed putt from the configured benchmark',()=>{
-  const result=calculateShot({startLie:'green',startDistance:5,finishLocation:'holed',endDistance:0,penalty:null});
-  closeTo(result.strokesGained,expectedStrokes('green',5)-1);
+test('calculates a holed putt from the published benchmark',()=>{
+  const result=calculateShot({
+    startLie:'green',
+    startDistance:20,
+    finishLocation:'holed',
+    endDistance:0,
+    penalty:null
+  });
+  closeTo(result.strokesGained,0.87);
   assert.equal(result.expectedAfter,0);
 });
 
@@ -174,7 +263,7 @@ test('complete-hole shot values telescope to tee expectation minus actual score'
   const summary=summarizeHole([drive,approach,putt],{par:4,teeDistance:400});
   assert.equal(summary.score,3);
   assert.equal(summary.complete,true);
-  closeTo(summary.strokesGained,expectedStrokes('tee',400)-3);
+  closeTo(summary.strokesGained,3.99-3);
   closeTo(summary.identityError,0);
 });
 
@@ -198,7 +287,7 @@ test('hole score includes penalty strokes',()=>{
   assert.equal(summary.physicalStrokes,2);
   assert.equal(summary.penaltyStrokes,1);
   assert.equal(summary.score,3);
-  closeTo(summary.strokesGained,expectedStrokes('tee',400)-3);
+  closeTo(summary.strokesGained,3.99-3);
 });
 
 test('labels common hole scores',()=>{
