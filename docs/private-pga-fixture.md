@@ -92,3 +92,10 @@ This fixture can validate score reconstruction, shot ordering, lie mapping,
 penalty bookkeeping, strokes-gained aggregation, and analytics displays. It
 cannot make this app's historical Broadie baseline identical to the PGA TOUR's
 current event-adjusted statistic.
+
+The fixture also does not contain the distance from every shot to the nearest
+green edge. Imported shot categories therefore use the app's current
+flag-distance inference. PGA TOUR's around-the-green boundary is 30 yards from
+the green edge, so some official around-the-green shots may appear in the app's
+approach subtotal. This category limitation does not change per-shot or total
+SG and is tracked as a future green-edge-data improvement.
