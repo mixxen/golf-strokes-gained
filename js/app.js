@@ -1225,6 +1225,18 @@ function finishDescription(shot){
   return `${titleCase(shot.finish.location)} ${formatDistance(shot.finish.distance)} ${unitLabel(shot.finish.unit)}`;
 }
 
+function shotDistanceDescription(shot){
+  const startUnit=shot.start.unit||unitForLie(shot.start.lie);
+  const finishUnit=shot.finish.unit||unitForLie(shot.finish.benchmarkLie);
+  const distance=shotDistanceFromRemaining({
+    startDistance:shot.start.distance,
+    startUnit,
+    remainingDistance:shot.finish.location==='holed'?0:shot.finish.distance,
+    remainingUnit:finishUnit
+  });
+  return distance===null?'':`Shot distance ${formatDistance(distance)} ${unitLabel(startUnit)}`;
+}
+
 function renderHoleSelector(){
   elements.holeSelector.innerHTML=round.holes.slice(0,round.holeCount).map((hole)=>{
     const summary=holeSummary(hole.number);
@@ -1246,7 +1258,7 @@ function renderHoleShots(){
     const playing=strokeNumberForShot(shot);
     const penalty=Number(shot.calculation.penaltyStrokes||0);
     const actions=roundReadOnly?'':`<div class="shot-actions"><button type="button" data-edit="${shot.id}">Edit</button><button type="button" data-delete="${shot.id}" class="danger-button">Delete from here</button></div>`;
-    return `<article class="shot-card"><div class="shot-card-main"><span class="shot-number">${playing}</span><div><strong>${typeLabel(shot.type)}${shot.club?` · ${shot.club}`:''}${penalty?` · +${penalty} penalty`:''}</strong><p>${titleCase(shot.start.lie)} ${formatDistance(shot.start.distance)} ${unitLabel(shot.start.unit)} → ${finishDescription(shot)}</p><p class="calculation-line">Expected ${shot.calculation.expectedBefore.toFixed(2)} → ${shot.calculation.expectedAfter.toFixed(2)} · cost ${shot.calculation.strokeCost} · SG ${formatSg(shot.calculation.strokesGained)}</p></div><strong class="${shot.calculation.strokesGained>=0?'sg-positive':'sg-negative'}">${formatSg(shot.calculation.strokesGained)}</strong></div>${actions}</article>`;
+    return `<article class="shot-card"><div class="shot-card-main"><span class="shot-number">${playing}</span><div><strong>${typeLabel(shot.type)}${shot.club?` · ${shot.club}`:''}${penalty?` · +${penalty} penalty`:''}</strong><p>${titleCase(shot.start.lie)} ${formatDistance(shot.start.distance)} ${unitLabel(shot.start.unit)} → ${finishDescription(shot)}</p><p class="shot-distance">${shotDistanceDescription(shot)}</p><p class="calculation-line">Expected ${shot.calculation.expectedBefore.toFixed(2)} → ${shot.calculation.expectedAfter.toFixed(2)} · cost ${shot.calculation.strokeCost} · SG ${formatSg(shot.calculation.strokesGained)}</p></div><strong class="${shot.calculation.strokesGained>=0?'sg-positive':'sg-negative'}">${formatSg(shot.calculation.strokesGained)}</strong></div>${actions}</article>`;
   }).join(''):'<p class="empty-state">No strokes recorded on this hole. Add the tee shot above.</p>';
 }
 

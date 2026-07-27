@@ -13,6 +13,12 @@ test('calculates shot distance from a yardage remaining',()=>{
     remainingDistance:150,
     remainingUnit:'yards'
   }),250);
+  assert.equal(shotDistanceFromRemaining({
+    startDistance:413,
+    startUnit:'yards',
+    remainingDistance:107,
+    remainingUnit:'yards'
+  }),306);
 });
 
 test('calculates remaining distance when shot distance is entered',()=>{
