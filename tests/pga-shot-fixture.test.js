@@ -119,6 +119,7 @@ test('distinguishes physical strokes, penalties, and drops',()=>{
     playerId:'PTEST',
     playerName:'Test Player',
     eventName:'Test Event',
+    startDate:'2026-07-23',
     fetchedAt:'2026-07-26T00:00:00.000Z',
     roundPayloads:[{round:1,holes:[sourceHole]}]
   });
@@ -142,4 +143,5 @@ test('distinguishes physical strokes, penalties, and drops',()=>{
   assert.equal(fixture.rounds[0].holes[0].actions[2].countsAsPhysicalStroke,false);
   assert.equal(fixture.rounds[0].holes[0].actions[3].finish.benchmarkLie,'holed');
   assert.equal(fixture.rounds[0].holes[0].actions[3].remainingDistance.value,0);
+  assert.equal(fixture.tournament.startDate,'2026-07-23');
 });
