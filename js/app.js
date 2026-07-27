@@ -13,6 +13,7 @@ import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,teeIsSelectable} from './course-round.js';
 import {remainingDistanceFromShot,shotDistanceFromRemaining} from './distance-input.js';
+import {importPgaFixture} from './pga-fixture-import.js';
 import {createRoundStore} from './round-store.js';
 
 const LEGACY_ROUND_KEYS=[
@@ -66,6 +67,7 @@ const defaultRound=()=>({
   status:'in-progress',
   courseName:'',
   courseData:null,
+  testData:null,
   date:localDate(),
   holeCount:18,
   currentHole:1,
@@ -90,6 +92,8 @@ const elements={
   home:$('#rounds-home'),
   roundList:$('#round-list'),
   roundEmpty:$('#round-empty'),
+  pgaFixtureFile:$('#pga-fixture-file'),
+  pgaImportStatus:$('#pga-import-status'),
   setupPanel:$('#round-setup-panel'),
   homeButton:$('#home-button'),
   newRoundButton:$('#new-round-button'),
@@ -238,6 +242,7 @@ function migrateRound(data){
   base.status=data.status||'in-progress';
   base.courseName=data.courseName||'';
   base.courseData=data.courseData||null;
+  base.testData=data.testData||null;
   base.date=data.date||base.date;
   base.holeCount=Math.min(18,Math.max(1,Number(data.holeCount||data.courseData?.holeCount)||18));
   base.currentHole=Math.min(base.holeCount,Math.max(1,Number(data.currentHole)||1));
@@ -310,10 +315,14 @@ function renderRoundList(){
     const score=summaries.reduce((sum,summary)=>sum+summary.score,0);
     const sg=item.shots.reduce((sum,shot)=>sum+Number(shot.calculation?.strokesGained||0),0);
     const complete=roundIsComplete(item);
+    const testDetail=item.testData
+      ? `PGA test data · ${escapeHtml(item.testData.playerName)} · Round ${item.testData.roundNumber}`
+      : null;
     return `<article class="round-card">
       <button type="button" class="round-card-button" data-open-round="${escapeHtml(item.id)}">
         <span class="round-card-date">${escapeHtml(formatRoundDate(item.date))}</span>
         <h3>${escapeHtml(roundDisplayName(item))}</h3>
+        ${testDetail?`<span class="test-data-badge">${testDetail}</span>`:''}
         <span class="round-card-detail">${complete?'Completed':`${completed}/${item.holeCount} holes completed`}${item.courseData?.teeName?` · ${escapeHtml(item.courseData.teeName)} tees`:''}</span>
       </button>
       <div class="round-card-metrics">
@@ -374,7 +383,11 @@ function firstIncompleteHole(targetRound){
 function applyWorkspaceMode(){
   const complete=roundIsComplete();
   roundReadOnly=complete&&roundReadOnly;
-  elements.workspaceRoundStatus.textContent=complete?'Completed round':'Round in progress';
+  elements.workspaceRoundStatus.textContent=round.testData
+    ? 'PGA test data'
+    : complete
+      ? 'Completed round'
+      : 'Round in progress';
   elements.editRoundButton.classList.toggle('hidden',!roundReadOnly);
   elements.entryPanel.classList.toggle('hidden',roundReadOnly);
   elements.par.disabled=roundReadOnly;
@@ -385,13 +398,43 @@ function applyWorkspaceMode(){
 
 function renderWorkspaceHeading(){
   elements.workspaceCourseName.textContent=roundDisplayName(round);
-  elements.workspaceRoundMeta.textContent=`${formatRoundDate(round.date)}${round.courseData?.teeName?` · ${round.courseData.teeName} tees`:''}`;
+  elements.workspaceRoundStatus.textContent=round.testData
+    ? 'PGA test data'
+    : roundIsComplete()
+      ? 'Completed round'
+      : 'Round in progress';
+  elements.workspaceRoundMeta.textContent=round.testData
+    ? `${formatRoundDate(round.date)} · ${round.testData.playerName} · Round ${round.testData.roundNumber}`
+    : `${formatRoundDate(round.date)}${round.courseData?.teeName?` · ${round.courseData.teeName} tees`:''}`;
   elements.workspaceDate.value=round.date;
   elements.date.value=round.date;
-  elements.workspaceCourseSource.textContent=round.courseData
-    ? `Scorecard from OpenGolfAPI${round.courseData.modified?' with local hole edits':''}.`
-    : 'Manually entered scorecard.';
+  elements.workspaceCourseSource.textContent=round.testData
+    ? `Private ${round.testData.tournamentName} shot fixture. Imported locally; not uploaded.`
+    : round.courseData
+      ? `Scorecard from OpenGolfAPI${round.courseData.modified?' with local hole edits':''}.`
+      : 'Manually entered scorecard.';
   applyWorkspaceMode();
+}
+
+async function importPgaFixtureFile(file) {
+  if(!file) return;
+  elements.pgaImportStatus.textContent='Reading and validating the PGA fixture…';
+  try {
+    if(file.size>10_000_000) throw new Error('Choose a PGA fixture smaller than 10 MB.');
+    const fixture=JSON.parse(await file.text());
+    const result=importPgaFixture(fixture,roundStore);
+    renderRoundList();
+    const firstRound=result.rounds[0];
+    const changed=[
+      result.added?`${result.added} added`:null,
+      result.updated?`${result.updated} refreshed`:null
+    ].filter(Boolean).join(', ');
+    elements.pgaImportStatus.innerHTML=`Imported ${result.rounds.length} ${escapeHtml(result.playerName)} round${result.rounds.length===1?'':'s'} from ${escapeHtml(result.tournamentName)} (${changed}). <button type="button" class="text-button inline-button" data-open-round="${escapeHtml(firstRound.id)}">Open round 1</button>`;
+  } catch(error){
+    elements.pgaImportStatus.textContent=`Could not import the fixture: ${error.message}`;
+  } finally {
+    elements.pgaFixtureFile.value='';
+  }
 }
 
 function openRound(roundId){
@@ -1351,6 +1394,9 @@ function startNewRound(){ location.hash='#/round/new'; }
 elements.newRoundButton.addEventListener('click',startNewRound);
 $('#home-new-round-button').addEventListener('click',startNewRound);
 $('#empty-new-round-button').addEventListener('click',startNewRound);
+elements.pgaFixtureFile.addEventListener('change',()=>{
+  importPgaFixtureFile(elements.pgaFixtureFile.files?.[0]);
+});
 elements.homeButton.addEventListener('click',()=>{ location.hash='#/rounds'; });
 elements.editRoundButton.addEventListener('click',()=>{
   roundReadOnly=false;
