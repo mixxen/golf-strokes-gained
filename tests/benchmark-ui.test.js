@@ -58,6 +58,16 @@ test('landing page separates round history, setup, and the round workspace',asyn
   assert.match(app,/roundStore\.migrateLegacy/);
 });
 
+test('landing page imports a private PGA fixture without uploading it',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  assert.match(html,/id="pga-fixture-file"/);
+  assert.match(html,/Choose PGA fixture/);
+  assert.match(html,/stays in this browser and is not uploaded/);
+  assert.match(app,/importPgaFixture/);
+  assert.match(app,/file\.text\(\)/);
+  assert.match(app,/PGA test data/);
+});
+
 test('course import does not claim a tee loaded when only pars are available',async()=>{
   const app=await read('js/app.js');
   assert.match(app,/Pars loaded · hole yardages unavailable/);

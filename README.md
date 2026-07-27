@@ -150,7 +150,9 @@ gitignored `data/private/` directory and are never included in the deployed
 site.
 
 See [Private PGA shot fixture](docs/private-pga-fixture.md) for the expected
-summary, data fields, usage boundaries, and import instructions.
+summary, data fields, usage boundaries, and import instructions. On the landing
+page, expand **Developer test data** and choose the private JSON file to add the
+four labeled, read-only PGA test rounds to local browser storage.
 
 ## GitHub Pages
 

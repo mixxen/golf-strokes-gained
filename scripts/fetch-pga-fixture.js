@@ -11,6 +11,7 @@ const DEFAULTS=Object.freeze({
   playerName:'Rory McIlroy',
   eventName:'2025 THE PLAYERS Championship',
   courseName:'TPC Sawgrass (THE PLAYERS Stadium Course)',
+  startDate:'2025-03-13',
   rounds:[1,2,3,4],
   output:'data/private/rory-mcilroy-2025-players.json'
 });
@@ -41,6 +42,7 @@ function parseArguments(args) {
     else if(argument==='--player-name'&&next) values.playerName=next;
     else if(argument==='--event-name'&&next) values.eventName=next;
     else if(argument==='--course-name'&&next) values.courseName=next;
+    else if(argument==='--start-date'&&next) values.startDate=next;
     else if(argument==='--rounds'&&next){
       values.rounds=next.split(',').map(Number).filter((round)=>Number.isInteger(round)&&round>0);
     } else if(argument==='--output'&&next) values.output=next;

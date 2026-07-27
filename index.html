@@ -29,6 +29,19 @@
         <p>Start a round, choose your course and tees, then record each stroke in order.</p>
         <button id="empty-new-round-button" class="primary-button" type="button">Start your first round</button>
       </div>
+      <details class="panel test-data-tools">
+        <summary>Developer test data</summary>
+        <div class="test-data-content">
+          <div>
+            <h3>Import a private PGA fixture</h3>
+            <p>Choose the normalized JSON file from your computer. It stays in this browser and is not uploaded.</p>
+          </div>
+          <label class="file-picker">Choose PGA fixture
+            <input id="pga-fixture-file" type="file" accept=".json,application/json">
+          </label>
+        </div>
+        <p id="pga-import-status" class="helper-text" aria-live="polite">No test data imported.</p>
+      </details>
     </section>
 
     <section id="round-setup-panel" class="panel hidden">
