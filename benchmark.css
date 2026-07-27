@@ -1,5 +1,51 @@
-.benchmark-panel {
-  border-left:4px solid var(--brand);
+.methodology-back {
+  text-decoration:none;
+}
+
+.methodology-page {
+  max-width:820px;
+}
+
+.methodology-hero {
+  position:relative;
+  padding:1.5rem;
+  border-radius:20px;
+  background:linear-gradient(135deg,var(--brand),#27664e);
+  color:white;
+}
+
+.methodology-hero h2 {
+  margin-bottom:.55rem;
+  font-size:clamp(1.65rem,5vw,2.35rem);
+}
+
+.methodology-hero p:not(.eyebrow) {
+  max-width:680px;
+  margin:0;
+  color:rgb(255 255 255 / 78%);
+  line-height:1.55;
+}
+
+.methodology-hero .benchmark-badge {
+  position:absolute;
+  top:1.5rem;
+  right:1.5rem;
+}
+
+.methodology-section {
+  display:grid;
+  gap:.75rem;
+}
+
+.methodology-section p,
+.methodology-section ul {
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+}
+
+.methodology-section li+li {
+  margin-top:.45rem;
 }
 
 .benchmark-heading {
@@ -26,12 +72,6 @@
   white-space:nowrap;
 }
 
-.benchmark-panel > p {
-  margin-bottom:.75rem;
-  color:var(--muted);
-  line-height:1.5;
-}
-
 .benchmark-equation {
   padding:.8rem .9rem;
   border:1px solid var(--line);
@@ -42,25 +82,6 @@
   font-size:.85rem;
   font-weight:700;
   overflow-x:auto;
-}
-
-.benchmark-details {
-  margin-top:.85rem;
-  padding-top:.8rem;
-  border-top:1px solid var(--line);
-}
-
-.benchmark-details summary {
-  color:var(--brand);
-  font-weight:800;
-  cursor:pointer;
-}
-
-.benchmark-details p {
-  margin:.75rem 0 0;
-  color:var(--muted);
-  font-size:.84rem;
-  line-height:1.5;
 }
 
 .source-links {
@@ -87,17 +108,34 @@
   background:var(--brand-soft);
 }
 
-.lookup-warning {
-  color:var(--warning);
-  font-weight:800;
+.methodology-table-wrap {
+  overflow-x:auto;
+}
+
+.methodology-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:.86rem;
+}
+
+.methodology-table th,
+.methodology-table td {
+  padding:.65rem .55rem;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+
+.methodology-table th {
+  color:var(--brand);
 }
 
 @media(max-width:720px) {
-  .benchmark-heading {
-    flex-direction:column;
+  .methodology-hero {
+    display:grid;
+    gap:.7rem;
   }
-
-  .benchmark-badge {
-    white-space:normal;
+  .methodology-hero .benchmark-badge {
+    position:static;
+    width:max-content;
   }
 }

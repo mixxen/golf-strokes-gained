@@ -1,7 +1,6 @@
 import {
   BENCHMARK_VERSION,
   calculateShot,
-  drivingSummary,
   inferShotType,
   missParts,
   nextShotStart,
@@ -9,6 +8,7 @@ import {
   scoreLabel,
   summarizeHole
 } from './calculations.js';
+import {missZoneBreakdown,roundAnalytics} from './analytics.js';
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,teeIsSelectable} from './course-round.js';
@@ -25,7 +25,6 @@ const LEGACY_ROUND_KEYS=[
   'golf-strokes-gained-round-v3',
   'golf-strokes-gained-round-v2'
 ];
-const zones=['long-left','long','long-right','left','target','right','short-left','short','short-right'];
 const RELIEF_LOCATIONS=new Set(['penalty-area','unplayable']);
 const FINISH_OPTIONS={
   drive:new Set(['fairway','first-cut','rough','deep-rough','fairway-bunker','greenside-bunker','fringe','recovery','penalty-area','out-of-bounds','unplayable','green','holed']),
@@ -86,6 +85,7 @@ let editingShotId=null;
 let selectedCourse=null;
 let selectedTeeKey=null;
 let courseRequestController=null;
+let missFilter='drive';
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
@@ -168,9 +168,25 @@ const elements={
   entryPanel:$('#shot-entry-panel'),
   total:$('#total-sg'),
   driveSg:$('#sg-off-tee'),
+  approachSg:$('#sg-approach'),
+  shortGameSg:$('#sg-short-game'),
+  puttingSg:$('#sg-putting'),
+  scoreToPar:$('#score-to-par'),
+  holesCompleted:$('#holes-completed'),
   fairwayRate:$('#fairway-rate'),
-  playableRate:$('#playable-rate'),
-  penalties:$('#drive-penalties'),
+  girRate:$('#gir-rate'),
+  girDetail:$('#gir-detail'),
+  scramblingRate:$('#scrambling-rate'),
+  scramblingDetail:$('#scrambling-detail'),
+  puttsTotal:$('#putts-total'),
+  puttsPerHole:$('#putts-per-hole'),
+  penalties:$('#penalty-strokes'),
+  categorySgChart:$('#category-sg-chart'),
+  distanceSgChart:$('#distance-sg-chart'),
+  bestShotTitle:$('#best-shot-title'),
+  bestShotDetail:$('#best-shot-detail'),
+  worstShotTitle:$('#worst-shot-title'),
+  worstShotDetail:$('#worst-shot-detail'),
   missSummary:$('#miss-summary'),
   saveStatus:$('#save-status'),
   title:$('#shot-title'),
@@ -193,6 +209,7 @@ function unitLabel(unit){ return unit==='feet'?'ft':'yd'; }
 function formatDistance(distance){ return Number.isInteger(Number(distance))?String(Number(distance)):Number(distance).toFixed(1); }
 function formatToPar(value){ const numeric=Number(value); return numeric===0?'E':`${numeric>0?'+':''}${numeric}`; }
 function typeLabel(type){ return ({drive:'Drive',approach:'Approach',chip:'Chip / short game',putt:'Putt'})[type]||titleCase(type); }
+function analyticsTypeLabel(type){ return ({drive:'Off the tee',approach:'Approach',chip:'Around the green',putt:'Putting'})[type]||typeLabel(type); }
 function holeSummary(holeNumber=round.currentHole){ const hole=round.holes[holeNumber-1]; return summarizeHole(shotsForHole(holeNumber),{par:hole.par,teeDistance:hole.teeDistance}); }
 function holeIsComplete(holeNumber=round.currentHole){ return holeSummary(holeNumber).complete; }
 function nextPlayingStroke(){ return holeSummary().score+1; }
@@ -1234,8 +1251,87 @@ function renderHoleShots(){
 }
 
 function renderMissSummary(){
-  const drives=round.shots.filter((shot)=>shot.type==='drive');
-  elements.missSummary.innerHTML=zones.map((zone)=>`<div>${titleCase(zone)}<strong>${drives.filter((shot)=>shot.miss.zone===zone).length}</strong></div>`).join('');
+  const summary=missZoneBreakdown(round.shots,missFilter);
+  const maxCount=Math.max(1,...summary.map((item)=>item.count));
+  elements.missSummary.innerHTML=summary.map((item)=>{
+    const heat=item.count?Math.max(1,Math.ceil((item.count/maxCount)*4)):0;
+    const average=item.average===null?'No shots':`${formatSg(item.average)} avg SG`;
+    return `<div class="heat-${heat}" aria-label="${titleCase(item.zone)}: ${item.count} shots, ${average}">
+      <span>${titleCase(item.zone)}</span>
+      <strong>${item.count}</strong>
+      <small>${average}</small>
+    </div>`;
+  }).join('');
+}
+
+function applySgMetric(element,value){
+  element.textContent=formatSg(value);
+  element.className=value>=0?'sg-positive':'sg-negative';
+}
+
+function renderDivergingChart(element,rows){
+  const maximum=Math.max(.01,...rows.map((row)=>Math.abs(Number(row.sg)||0)));
+  element.innerHTML=rows.map((row)=>{
+    const sg=Number(row.sg)||0;
+    const width=(Math.abs(sg)/maximum)*50;
+    const direction=sg>=0?'positive':'negative';
+    const count=`${row.count} stroke${row.count===1?'':'s'}`;
+    return `<div class="sg-bar-row ${row.count?'':'empty-bar'}">
+      <div class="sg-bar-label"><span>${escapeHtml(row.label)}</span><small>${count}</small><strong class="${direction==='positive'?'sg-positive':'sg-negative'}">${formatSg(sg)}</strong></div>
+      <div class="sg-bar-track" aria-label="${escapeHtml(row.label)}: ${formatSg(sg)} strokes gained over ${count}">
+        <span class="sg-bar-axis"></span>
+        <span class="sg-bar-fill ${direction}" style="width:${width.toFixed(2)}%"></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function highlightText(shot){
+  if(!shot) return {title:'Add a stroke to begin',detail:'—'};
+  const unit=shot.startUnit==='feet'?'ft':'yd';
+  return {
+    title:`Hole ${shot.hole} · ${analyticsTypeLabel(shot.type)} · ${formatSg(shot.sg)} SG`,
+    detail:`${titleCase(shot.startLie)} · ${formatDistance(shot.startDistance)} ${unit} → ${titleCase(shot.finishLocation)}`
+  };
+}
+
+function renderAnalytics(){
+  const analytics=roundAnalytics(
+    round.shots,
+    round.holes.slice(0,round.holeCount)
+  );
+  const categoryMap=Object.fromEntries(analytics.categories.map((item)=>[item.key,item]));
+  applySgMetric(elements.total,analytics.totalSg);
+  applySgMetric(elements.driveSg,categoryMap.drive.sg);
+  applySgMetric(elements.approachSg,categoryMap.approach.sg);
+  applySgMetric(elements.shortGameSg,categoryMap.chip.sg);
+  applySgMetric(elements.puttingSg,categoryMap.putt.sg);
+
+  elements.scoreToPar.textContent=analytics.toPar===null?'—':formatToPar(analytics.toPar);
+  elements.holesCompleted.textContent=`${analytics.holesCompleted} of ${round.holeCount} holes complete`;
+  elements.fairwayRate.textContent=rate(analytics.fairwayRate);
+  elements.girRate.textContent=rate(analytics.girRate);
+  elements.girDetail.textContent=`${analytics.girCount} of ${analytics.holesCompleted} completed holes`;
+  elements.scramblingRate.textContent=rate(analytics.scramblingRate);
+  elements.scramblingDetail.textContent=analytics.scramblingAttempts
+    ? `${analytics.scramblingAttempts} opportunit${analytics.scramblingAttempts===1?'y':'ies'}`
+    : 'No attempts';
+  elements.puttsTotal.textContent=String(analytics.putts);
+  elements.puttsPerHole.textContent=analytics.puttsPerHole===null
+    ? '— per completed hole'
+    : `${analytics.puttsPerHole.toFixed(1)} per completed hole`;
+  elements.penalties.textContent=String(analytics.penalties);
+
+  renderDivergingChart(elements.categorySgChart,analytics.categories);
+  renderDivergingChart(elements.distanceSgChart,analytics.distances);
+
+  const best=highlightText(analytics.bestShot);
+  const worst=highlightText(analytics.worstShot);
+  elements.bestShotTitle.textContent=best.title;
+  elements.bestShotDetail.textContent=best.detail;
+  elements.worstShotTitle.textContent=worst.title;
+  elements.worstShotDetail.textContent=worst.detail;
+  renderMissSummary();
 }
 
 function render(){
@@ -1243,16 +1339,9 @@ function render(){
   elements.workspaceDate.value=round.date;
   renderCourseSource();
   renderRecentCourses();
-  const totals=round.shots.reduce((sum,shot)=>sum+Number(shot.calculation.strokesGained||0),0);
-  const driving=drivingSummary(round.shots);
-  elements.total.textContent=formatSg(totals);
-  elements.driveSg.textContent=formatSg(driving.sg);
-  elements.fairwayRate.textContent=rate(driving.fairwayRate);
-  elements.playableRate.textContent=rate(driving.playableRate);
-  elements.penalties.textContent=String(driving.penalties);
+  renderAnalytics();
   renderHoleSelector();
   renderHoleShots();
-  renderMissSummary();
   if(holeIsComplete()&&!editingShotId) renderCompletePanel();
   else updateContext();
   if(activeView==='workspace') renderWorkspaceHeading();
@@ -1285,6 +1374,16 @@ document.addEventListener('click',(event)=>{
     elements.endDistance.value=distanceButton.dataset.distance;
     syncShotDistanceFromRemaining();
     saveDraft();
+  }
+  const missFilterButton=event.target.closest('[data-miss-filter]');
+  if(missFilterButton){
+    missFilter=missFilterButton.dataset.missFilter;
+    document.querySelectorAll('[data-miss-filter]').forEach((button)=>{
+      const selected=button.dataset.missFilter===missFilter;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+    renderMissSummary();
   }
 });
 

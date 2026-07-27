@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#123c2d">
   <title>Golf Strokes Gained</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="benchmark.css">
 </head>
 <body>
   <header class="app-header">
@@ -114,33 +113,64 @@
 
     <section class="summary-grid workspace-section hidden" aria-label="Round summary">
       <article class="metric-card primary-metric"><span>Total SG</span><strong id="total-sg">0.00</strong></article>
-      <article class="metric-card"><span>Driving SG</span><strong id="sg-off-tee">0.00</strong></article>
-      <article class="metric-card"><span>Fairways</span><strong id="fairway-rate">—</strong></article>
-      <article class="metric-card"><span>Playable</span><strong id="playable-rate">—</strong></article>
-      <article class="metric-card"><span>Drive penalties</span><strong id="drive-penalties">0</strong></article>
+      <article class="metric-card"><span>Off the tee</span><strong id="sg-off-tee">0.00</strong></article>
+      <article class="metric-card"><span>Approach</span><strong id="sg-approach">0.00</strong></article>
+      <article class="metric-card"><span>Around green</span><strong id="sg-short-game">0.00</strong></article>
+      <article class="metric-card"><span>Putting</span><strong id="sg-putting">0.00</strong></article>
     </section>
 
-    <section class="panel benchmark-panel workspace-section hidden" aria-labelledby="benchmark-heading">
-      <div class="benchmark-heading">
+    <section class="panel analytics-panel workspace-section hidden" aria-labelledby="analytics-heading">
+      <div class="section-heading analytics-heading">
         <div>
-          <p class="eyebrow">Comparison baseline</p>
-          <h2 id="benchmark-heading">PGA TOUR — Broadie 2003–2010</h2>
+          <p class="eyebrow">Round performance</p>
+          <h2 id="analytics-heading">Analytics</h2>
         </div>
-        <span class="benchmark-badge">Historical · unadjusted</span>
+        <a class="methodology-link" href="methodology.html">How SG is calculated</a>
       </div>
-      <p>Every stroke is compared with the expected number of strokes a PGA TOUR player needed to hole out from the same lie and distance in Mark Broadie’s published ShotLink benchmark.</p>
-      <div class="benchmark-equation" aria-label="Strokes gained equation">SG = J(start lie, distance) − 1 − J(finish lie, distance)</div>
-      <details class="benchmark-details">
-        <summary>Method, lie mapping, and references</summary>
-        <p>Off-green values come from Broadie’s Table B.1, estimated from more than eight million PGA TOUR ShotLink strokes from 2003–2010. Putting values use Broadie’s published PGA TOUR putting table.</p>
-        <p><strong>Lie mapping:</strong> fairway and greenside bunkers use the sand curve. Deep rough with a direct route uses rough. Use Trees / recovery only when the direct route is obstructed. Fringe currently uses the fairway curve because the public benchmark has no separate fringe condition.</p>
-        <p><strong>Distance handling:</strong> values are linearly interpolated between published points. Distances outside the published range use the nearest endpoint rather than undocumented extrapolation; the detailed methodology documents this limitation.</p>
-        <p><strong>Scope:</strong> these are historical, unadjusted shot values. They do not reproduce the current official PGA TOUR statistic’s event, course, round, or field adjustment.</p>
-        <div class="source-links">
-          <a href="https://business.columbia.edu/sites/default/files-efs/pubfiles/4996/assessing_golfer_performance.full.pdf" target="_blank" rel="noopener">Broadie 2012 — off-green benchmark</a>
-          <a href="https://www.columbia.edu/~mnb2/broadie/Assets/putting_strokes_gained_20110113.pdf" target="_blank" rel="noopener">Broadie 2011 — putting benchmark</a>
+      <div class="overview-grid" aria-label="Round overview">
+        <article><span>Score to par</span><strong id="score-to-par">—</strong><small id="holes-completed">0 holes complete</small></article>
+        <article><span>Fairways</span><strong id="fairway-rate">—</strong><small>Par 4 and 5 tee shots</small></article>
+        <article><span>Greens in regulation</span><strong id="gir-rate">—</strong><small id="gir-detail">0 of 0 holes</small></article>
+        <article><span>Scrambling</span><strong id="scrambling-rate">—</strong><small id="scrambling-detail">No attempts</small></article>
+        <article><span>Putts</span><strong id="putts-total">0</strong><small id="putts-per-hole">— per completed hole</small></article>
+        <article><span>Penalty strokes</span><strong id="penalty-strokes">0</strong><small>Included in SG and score</small></article>
+      </div>
+
+      <div class="analytics-charts">
+        <article class="analytics-chart">
+          <div class="chart-heading"><h3>SG by shot type</h3><span>Total for this round</span></div>
+          <div id="category-sg-chart" class="diverging-chart"></div>
+        </article>
+        <article class="analytics-chart">
+          <div class="chart-heading"><h3>SG by starting distance</h3><span>Off-green shots · distance to hole</span></div>
+          <div id="distance-sg-chart" class="diverging-chart"></div>
+        </article>
+      </div>
+
+      <div class="shot-highlights">
+        <article>
+          <span>Best stroke</span>
+          <strong id="best-shot-title">Add a stroke to begin</strong>
+          <small id="best-shot-detail">—</small>
+        </article>
+        <article>
+          <span>Biggest opportunity</span>
+          <strong id="worst-shot-title">Add a stroke to begin</strong>
+          <small id="worst-shot-detail">—</small>
+        </article>
+      </div>
+
+      <div class="dispersion-section">
+        <div class="chart-heading">
+          <div><h3>Shot pattern</h3><span>Finish relative to the intended target</span></div>
+          <div class="segmented-control" aria-label="Filter shot pattern">
+            <button type="button" class="selected" aria-pressed="true" data-miss-filter="drive">Drives</button>
+            <button type="button" aria-pressed="false" data-miss-filter="approach">Approaches</button>
+            <button type="button" aria-pressed="false" data-miss-filter="chip">Short game</button>
+          </div>
         </div>
-      </details>
+        <div id="miss-summary" class="miss-summary" aria-live="polite"></div>
+      </div>
     </section>
 
     <section class="panel workspace-section hidden" id="shot-entry-panel">
@@ -222,13 +252,9 @@
       <div id="hole-shot-list" class="shot-card-list"></div>
     </section>
 
-    <section class="panel workspace-section hidden">
-      <div class="section-heading"><div><p class="eyebrow">Driving pattern</p><h2>Miss distribution</h2></div></div>
-      <div id="miss-summary" class="miss-summary"></div>
-    </section>
   </main>
 
-  <footer>Benchmark: PGA TOUR — Broadie 2003–2010. Historical and unadjusted for course, round, and field difficulty. Distances outside the published range use the nearest endpoint.<br>Course data, when loaded from the directory: <a href="https://opengolfapi.org/" target="_blank" rel="noopener">OpenGolfAPI</a>, licensed under <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL 1.0</a>.</footer>
+  <footer><a href="methodology.html">Strokes-gained methodology</a> · Course data, when loaded from the directory: <a href="https://opengolfapi.org/" target="_blank" rel="noopener">OpenGolfAPI</a>, licensed under <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL 1.0</a>.</footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

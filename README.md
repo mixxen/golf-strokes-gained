@@ -16,6 +16,9 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 - Nine-zone directional miss capture
 - Fairway, rough, bunker, recovery, green, relief, and stroke-and-distance outcomes
 - Per-hole editing, deletion, undo, scoring, and completion flow
+- Round analytics for SG by category and starting-distance bucket
+- GIR, scrambling, putting, fairway, penalty, best/worst-stroke, and dispersion insights
+- A dedicated, user-facing strokes-gained methodology page
 - Local browser persistence with schema migration and recalculation
 - GitHub Pages deployment and automated calculation tests
 
