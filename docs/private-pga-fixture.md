@@ -29,6 +29,21 @@ The default output is:
 data/private/rory-mcilroy-2025-players.json
 ```
 
+## Load it into the app
+
+1. Open the app landing page.
+2. Expand **Developer test data**.
+3. Choose **Choose PGA fixture**.
+4. Select `data/private/rory-mcilroy-2025-players.json`.
+
+The browser converts the four PGA rounds into the app's round schema and stores
+them in local browser storage. No file upload or network request occurs during
+this step. The imported cards are labeled **PGA test data**, and importing the
+same fixture again refreshes those rounds instead of creating duplicates.
+
+Each imported round is complete and opens read-only by default. Choose **Edit
+round** if an input needs to be changed for a test.
+
 The importer only allows output beneath `data/private/`. It performs four
 requests—one for each regulation round—and does not crawl players, tournaments,
 or seasons.
