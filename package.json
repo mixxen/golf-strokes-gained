@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "fixture:pga": "node scripts/fetch-pga-fixture.js"
   }
 }
