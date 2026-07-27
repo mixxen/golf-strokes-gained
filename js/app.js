@@ -8,7 +8,7 @@ import {
   scoreLabel,
   summarizeHole
 } from './calculations.js';
-import {missZoneBreakdown,roundAnalytics} from './analytics.js';
+import {aggregateRoundsAnalytics,missZoneBreakdown,roundAnalytics} from './analytics.js';
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,teeIsSelectable} from './course-round.js';
@@ -86,12 +86,22 @@ let selectedCourse=null;
 let selectedTeeKey=null;
 let courseRequestController=null;
 let missFilter='drive';
+let aggregateRoundLimit=5;
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
   home:$('#rounds-home'),
   roundList:$('#round-list'),
   roundEmpty:$('#round-empty'),
+  aggregateEmpty:$('#aggregate-empty'),
+  aggregateContent:$('#aggregate-content'),
+  aggregateRangeDetail:$('#aggregate-range-detail'),
+  aggregateAverageSg:$('#aggregate-average-sg'),
+  aggregateFairways:$('#aggregate-fairways'),
+  aggregateGir:$('#aggregate-gir'),
+  aggregateScrambling:$('#aggregate-scrambling'),
+  aggregateCategoryChart:$('#aggregate-category-chart'),
+  aggregateFootnote:$('#aggregate-footnote'),
   pgaFixtureFile:$('#pga-fixture-file'),
   pgaImportStatus:$('#pga-import-status'),
   setupPanel:$('#round-setup-panel'),
@@ -323,6 +333,27 @@ function roundDisplayName(targetRound){
   return targetRound.courseName||'Manual round';
 }
 
+function renderAggregateStats(rounds=roundStore.list()){
+  const completedPersonalRounds=rounds.filter((item)=>!item.testData&&roundIsComplete(item));
+  const analytics=aggregateRoundsAnalytics(completedPersonalRounds,aggregateRoundLimit);
+  const hasRounds=analytics.roundCount>0;
+  elements.aggregateEmpty.classList.toggle('hidden',hasRounds);
+  elements.aggregateContent.classList.toggle('hidden',!hasRounds);
+  elements.aggregateRangeDetail.textContent=hasRounds
+    ? `Last ${analytics.roundCount} completed personal round${analytics.roundCount===1?'':'s'}`
+    : 'Completed personal rounds';
+  if(!hasRounds) return;
+
+  applySgMetric(elements.aggregateAverageSg,analytics.averageSg);
+  elements.aggregateFairways.textContent=rate(analytics.fairwayRate);
+  elements.aggregateGir.textContent=rate(analytics.girRate);
+  elements.aggregateScrambling.textContent=rate(analytics.scramblingRate);
+  renderDivergingChart(elements.aggregateCategoryChart,analytics.categories);
+  const putts=analytics.puttsPerHole===null?'—':analytics.puttsPerHole.toFixed(1);
+  elements.aggregateFootnote.textContent=
+    `${analytics.holesCompleted} completed holes · ${putts} putts per hole · ${analytics.penalties} penalty stroke${analytics.penalties===1?'':'s'}`;
+}
+
 function renderRoundList(){
   const rounds=roundStore.list();
   elements.roundEmpty.classList.toggle('hidden',rounds.length>0);
@@ -349,6 +380,7 @@ function renderRoundList(){
       </div>
     </article>`;
   }).join('');
+  renderAggregateStats(rounds);
 }
 
 function setVisibleView(view){
@@ -1360,6 +1392,17 @@ function render(){
 }
 
 document.addEventListener('click',(event)=>{
+  const roundLimitButton=event.target.closest('[data-round-limit]');
+  if(roundLimitButton){
+    aggregateRoundLimit=Number(roundLimitButton.dataset.roundLimit)||5;
+    document.querySelectorAll('[data-round-limit]').forEach((button)=>{
+      const selected=Number(button.dataset.roundLimit)===aggregateRoundLimit;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+    renderAggregateStats();
+    return;
+  }
   const openRoundButton=event.target.closest('[data-open-round]');
   if(openRoundButton){
     location.hash=`#/round/${encodeURIComponent(openRoundButton.dataset.openRound)}`;

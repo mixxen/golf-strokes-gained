@@ -33,6 +33,34 @@ test('round workspace includes category, distance, overview, and dispersion anal
   assert.match(app,/missZoneBreakdown/);
 });
 
+test('landing page aggregates recent completed personal rounds with quick ranges',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  assert.match(html,/id="aggregate-heading"/);
+  assert.match(html,/id="aggregate-average-sg"/);
+  assert.match(html,/id="aggregate-category-chart"/);
+  assert.deepEqual(
+    [...html.matchAll(/data-round-limit="(\d+)"/g)].map((match)=>Number(match[1])),
+    [5,10,20,40]
+  );
+  assert.match(app,/aggregateRoundsAnalytics/);
+  assert.match(app,/renderAggregateStats/);
+  assert.match(app,/!item\.testData&&roundIsComplete\(item\)/);
+});
+
+test('round workspace puts hole selection and stroke entry before round analytics',async()=>{
+  const html=await read('index.html');
+  const holeSelector=html.indexOf('id="hole-selector"');
+  const shotEntry=html.indexOf('id="shot-entry-panel"');
+  const holeHistory=html.indexOf('id="hole-shot-panel"');
+  const roundSummary=html.indexOf('aria-label="Round summary"');
+  const analytics=html.indexOf('id="analytics-heading"');
+  assert.ok(holeSelector>=0);
+  assert.ok(holeSelector<shotEntry);
+  assert.ok(shotEntry<holeHistory);
+  assert.ok(holeHistory<roundSummary);
+  assert.ok(roundSummary<analytics);
+});
+
 test('shot cards show the calculated shot distance',async()=>{
   const app=await read('js/app.js');
   assert.match(app,/function shotDistanceDescription/);

@@ -63,6 +63,50 @@ main {
 .home-hero h2 { font-size:clamp(1.7rem,5vw,2.4rem); }
 .home-hero p:last-child { margin:.45rem 0 0; color:rgb(255 255 255 / 76%); }
 .home-hero .primary-button { width:auto; flex:0 0 auto; background:white; color:var(--brand); }
+.aggregate-panel { display:grid; gap:1rem; }
+.aggregate-heading {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+}
+.aggregate-heading .helper-text { margin:.35rem 0 0; }
+.aggregate-range button {
+  min-width:42px;
+  padding:.5rem .7rem;
+  font-size:.78rem;
+}
+.aggregate-overview {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:.65rem;
+}
+.aggregate-overview article {
+  min-width:0;
+  padding:.8rem;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#f8faf8;
+}
+.aggregate-overview span {
+  display:block;
+  margin-bottom:.25rem;
+  color:var(--muted);
+  font-size:.72rem;
+}
+.aggregate-overview strong {
+  display:block;
+  font-size:1.25rem;
+}
+.aggregate-overview .aggregate-primary {
+  border-color:var(--brand);
+  background:var(--brand);
+  color:white;
+}
+.aggregate-overview .aggregate-primary span { color:rgb(255 255 255 / 72%); }
+.aggregate-overview .aggregate-primary strong { color:white; }
+.aggregate-chart { margin-top:1rem; }
+.aggregate-panel #aggregate-footnote { margin:1rem 0 0; }
 .round-list { display:grid; gap:.75rem; }
 .round-card {
   display:grid;
@@ -614,6 +658,7 @@ footer { width:min(980px,calc(100% - 2rem)); margin:0 auto 2rem; color:var(--mut
   .course-tool-heading .text-button { padding-left:0; }
   .home-hero { display:grid; }
   .home-hero .primary-button { width:100%; }
+  .aggregate-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .round-card { grid-template-columns:1fr; }
   .round-card-metrics { justify-content:flex-start; padding-top:.7rem; border-top:1px solid var(--line); }
   .round-card-metric { text-align:left; }
@@ -630,6 +675,8 @@ footer { width:min(980px,calc(100% - 2rem)); margin:0 auto 2rem; color:var(--mut
   .search-control .primary-button { width:100%; }
   .tee-selector { grid-template-columns:1fr; }
   .app-header { display:grid; }
+  .aggregate-heading { display:grid; }
+  .aggregate-range { justify-content:flex-start; }
   .header-actions { width:100%; }
   .header-actions button { flex:1; }
   .analytics-heading,.chart-heading { display:grid; }

@@ -132,6 +132,10 @@ export function roundAnalytics(shots=[],holes=[]) {
   const missedGreens=completed.filter((item)=>!item.gir);
   const scrambles=missedGreens.filter((item)=>item.summary.score<=Number(item.hole.par)).length;
   const putts=shots.filter((shot)=>shot.type==='putt').length;
+  const completedPutts=completed.reduce(
+    (total,item)=>total+item.shots.filter((shot)=>shot.type==='putt').length,
+    0
+  );
   const penalties=shots.reduce((total,shot)=>
     total+number(shot?.calculation?.penaltyStrokes??shot?.penalty?.strokes),
   0);
@@ -150,14 +154,66 @@ export function roundAnalytics(shots=[],holes=[]) {
     categories:categoryBreakdown(shots),
     distances:distanceBreakdown(shots),
     fairwayRate:driving.fairwayRate,
+    fairwayCount:driving.fairwayRate===null?0:driving.fairwayRate*driving.count,
+    driveCount:driving.count,
     girRate:completed.length?girCount/completed.length:null,
     girCount,
     scramblingRate:missedGreens.length?scrambles/missedGreens.length:null,
+    scramblingCount:scrambles,
     scramblingAttempts:missedGreens.length,
     putts,
-    puttsPerHole:completed.length?putts/completed.length:null,
+    completedPutts,
+    puttsPerHole:completed.length?completedPutts/completed.length:null,
     penalties,
     bestShot:shotHighlight(ranked[0]),
     worstShot:shotHighlight(ranked.at(-1))
+  };
+}
+
+export function aggregateRoundsAnalytics(rounds=[],limit=5) {
+  const selected=rounds.slice(0,Math.max(1,Number(limit)||5));
+  const summaries=selected.map((item)=>roundAnalytics(
+    Array.isArray(item.shots)?item.shots:[],
+    Array.isArray(item.holes)?item.holes.slice(0,Number(item.holeCount)||item.holes.length):[]
+  ));
+  const roundCount=summaries.length;
+  const totalSg=summaries.reduce((total,item)=>total+item.totalSg,0);
+  const holesCompleted=summaries.reduce((total,item)=>total+item.holesCompleted,0);
+  const driveCount=summaries.reduce((total,item)=>total+item.driveCount,0);
+  const fairwayCount=summaries.reduce((total,item)=>total+item.fairwayCount,0);
+  const girCount=summaries.reduce((total,item)=>total+item.girCount,0);
+  const scramblingCount=summaries.reduce((total,item)=>total+item.scramblingCount,0);
+  const scramblingAttempts=summaries.reduce((total,item)=>total+item.scramblingAttempts,0);
+  const completedPutts=summaries.reduce((total,item)=>total+item.completedPutts,0);
+  const penalties=summaries.reduce((total,item)=>total+item.penalties,0);
+
+  const categories=SHOT_CATEGORIES.map(({key,label})=>{
+    const values=summaries.map((item)=>
+      item.categories.find((category)=>category.key===key)
+    );
+    const categoryTotal=values.reduce((total,item)=>total+number(item?.sg),0);
+    const count=values.reduce((total,item)=>total+number(item?.count),0);
+    return {
+      key,
+      label,
+      count,
+      totalSg:categoryTotal,
+      sg:roundCount?categoryTotal/roundCount:0,
+      average:count?categoryTotal/count:null
+    };
+  });
+
+  return {
+    requestedLimit:Number(limit)||5,
+    roundCount,
+    totalSg,
+    averageSg:roundCount?totalSg/roundCount:null,
+    holesCompleted,
+    categories,
+    fairwayRate:driveCount?fairwayCount/driveCount:null,
+    girRate:holesCompleted?girCount/holesCompleted:null,
+    scramblingRate:scramblingAttempts?scramblingCount/scramblingAttempts:null,
+    puttsPerHole:holesCompleted?completedPutts/holesCompleted:null,
+    penalties
   };
 }
