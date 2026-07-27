@@ -8,7 +8,7 @@ import {
   scoreLabel,
   summarizeHole
 } from './calculations.js';
-import {aggregateRoundsAnalytics,missZoneBreakdown,roundAnalytics} from './analytics.js';
+import {aggregateRoundsAnalytics,missZoneBreakdown,rankedShots,roundAnalytics} from './analytics.js';
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,teeIsSelectable} from './course-round.js';
@@ -87,6 +87,7 @@ let selectedTeeKey=null;
 let courseRequestController=null;
 let missFilter='drive';
 let aggregateRoundLimit=3;
+let shotLeaderboardFilter='all';
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
@@ -198,6 +199,8 @@ const elements={
   worstShotTitle:$('#worst-shot-title'),
   worstShotDetail:$('#worst-shot-detail'),
   missSummary:$('#miss-summary'),
+  roundShotCount:$('#round-shot-count'),
+  roundShotRanking:$('#round-shot-ranking'),
   saveStatus:$('#save-status'),
   title:$('#shot-title'),
   context:$('#shot-context-text'),
@@ -224,6 +227,15 @@ function holeSummary(holeNumber=round.currentHole){ const hole=round.holes[holeN
 function holeIsComplete(holeNumber=round.currentHole){ return holeSummary(holeNumber).complete; }
 function nextPlayingStroke(){ return holeSummary().score+1; }
 function strokeNumberForShot(shot){ const prior=shotsForHole(shot.hole).filter((item)=>item.shotNumber<shot.shotNumber); return summarizeHole(prior).score+1; }
+
+function selectShotLeaderboardFilter(filter='all'){
+  shotLeaderboardFilter=filter;
+  document.querySelectorAll('[data-shot-filter]').forEach((button)=>{
+    const selected=button.dataset.shotFilter===shotLeaderboardFilter;
+    button.classList.toggle('selected',selected);
+    button.setAttribute('aria-pressed',String(selected));
+  });
+}
 
 function normalizeShot(shot){
   if(!shot?.start||!shot?.finish) return shot;
@@ -415,6 +427,7 @@ function beginNewRound(){
   selectedZone=null;
   selectedLocation=null;
   editingShotId=null;
+  selectShotLeaderboardFilter();
   resetCoursePicker();
   elements.date.value=round.date;
   elements.saveStatus.textContent='Not saved yet';
@@ -499,6 +512,7 @@ function openRound(roundId){
   editingShotId=null;
   selectedZone=null;
   selectedLocation=null;
+  selectShotLeaderboardFilter();
   round.holes.forEach((hole)=>recalculateHoleShots(hole.number));
   setVisibleView('workspace');
   restoreDraft();
@@ -1308,6 +1322,33 @@ function renderMissSummary(){
   }).join('');
 }
 
+function renderShotLeaderboard(){
+  const shots=rankedShots(round.shots,shotLeaderboardFilter);
+  const filterLabel=({
+    all:'stroke',
+    drive:'drive',
+    approach:'approach',
+    chip:'around-the-green stroke',
+    putt:'putt',
+    bunker:'bunker-related stroke',
+    penalty:'penalty stroke'
+  })[shotLeaderboardFilter]||'stroke';
+  elements.roundShotCount.textContent=
+    `${shots.length} ${filterLabel}${shots.length===1?'':'s'} shown`;
+  elements.roundShotRanking.innerHTML=shots.length?shots.map((shot,index)=>{
+    const penalty=Number(shot.calculation?.penaltyStrokes||shot.penalty?.strokes||0);
+    return `<article class="ranked-shot">
+      <span class="ranked-shot-position">${index+1}</span>
+      <div>
+        <strong>Hole ${shot.hole} · Stroke ${shot.shotNumber} · ${typeLabel(shot.type)}${shot.club?` · ${escapeHtml(shot.club)}`:''}</strong>
+        <p>${titleCase(shot.start.lie)} ${formatDistance(shot.start.distance)} ${unitLabel(shot.start.unit)} → ${finishDescription(shot)}</p>
+        <small>${shotDistanceDescription(shot)}${penalty?` · ${penalty} penalty stroke${penalty===1?'':'s'}`:''}</small>
+      </div>
+      <strong class="${Number(shot.calculation.strokesGained)>=0?'sg-positive':'sg-negative'}">${formatSg(shot.calculation.strokesGained)}</strong>
+    </article>`;
+  }).join(''):`<p class="empty-state">No ${filterLabel}s recorded in this round.</p>`;
+}
+
 function applySgMetric(element,value){
   element.textContent=formatSg(value);
   element.className=value>=0?'sg-positive':'sg-negative';
@@ -1376,6 +1417,7 @@ function renderAnalytics(){
   elements.worstShotTitle.textContent=worst.title;
   elements.worstShotDetail.textContent=worst.detail;
   renderMissSummary();
+  renderShotLeaderboard();
 }
 
 function render(){
@@ -1439,6 +1481,11 @@ document.addEventListener('click',(event)=>{
       button.setAttribute('aria-pressed',String(selected));
     });
     renderMissSummary();
+  }
+  const shotFilterButton=event.target.closest('[data-shot-filter]');
+  if(shotFilterButton){
+    selectShotLeaderboardFilter(shotFilterButton.dataset.shotFilter);
+    renderShotLeaderboard();
   }
 });
 

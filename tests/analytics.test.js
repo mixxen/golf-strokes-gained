@@ -5,6 +5,7 @@ import {
   categoryBreakdown,
   distanceBreakdown,
   missZoneBreakdown,
+  rankedShots,
   roundAnalytics
 } from '../js/analytics.js';
 
@@ -104,6 +105,40 @@ test('summarizes miss zones for a selected shot type',()=>{
   const approaches=missZoneBreakdown(shots,'approach');
   assert.equal(approaches.find((item)=>item.zone==='short-right').count,1);
   assert.equal(approaches.find((item)=>item.zone==='right').count,0);
+});
+
+test('ranks all shots from best to worst and filters categories',()=>{
+  assert.deepEqual(rankedShots(shots).map((item)=>item.id),['putt','drive','approach']);
+  assert.deepEqual(rankedShots(shots,'drive').map((item)=>item.id),['drive']);
+  assert.deepEqual(rankedShots(shots,'approach').map((item)=>item.id),['approach']);
+  assert.deepEqual(rankedShots(shots,'putt').map((item)=>item.id),['putt']);
+});
+
+test('filters bunker-related and penalty shots',()=>{
+  const bunkerShot=shot({
+    id:'bunker-result',
+    shotNumber:4,
+    type:'approach',
+    startLie:'rough',
+    startDistance:80,
+    finishLocation:'greenside-bunker',
+    finishLie:'sand',
+    sg:-0.7
+  });
+  const penaltyShot=shot({
+    id:'penalty-result',
+    shotNumber:5,
+    type:'drive',
+    startLie:'tee',
+    startDistance:420,
+    finishLocation:'out-of-bounds',
+    finishLie:'tee',
+    sg:-2,
+    penaltyStrokes:1
+  });
+  const sample=[...shots,bunkerShot,penaltyShot];
+  assert.deepEqual(rankedShots(sample,'bunker').map((item)=>item.id),['bunker-result']);
+  assert.deepEqual(rankedShots(sample,'penalty').map((item)=>item.id),['penalty-result']);
 });
 
 test('builds useful round overview metrics and shot highlights',()=>{

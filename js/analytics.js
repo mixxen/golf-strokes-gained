@@ -81,6 +81,27 @@ export function missZoneBreakdown(shots=[],type='drive') {
   });
 }
 
+export function rankedShots(shots=[],filter='all') {
+  const filtered=shots.filter((shot)=>{
+    if(!Number.isFinite(Number(shot?.calculation?.strokesGained))) return false;
+    if(filter==='all') return true;
+    if(filter==='bunker'){
+      return shot?.start?.lie==='sand'
+        || shot?.finish?.benchmarkLie==='sand'
+        || String(shot?.finish?.location||'').includes('bunker');
+    }
+    if(filter==='penalty'){
+      return number(shot?.calculation?.penaltyStrokes??shot?.penalty?.strokes)>0;
+    }
+    return shot?.type===filter;
+  });
+  return filtered.sort((left,right)=>
+    number(right.calculation.strokesGained)-number(left.calculation.strokesGained)
+    || number(left.hole)-number(right.hole)
+    || number(left.shotNumber)-number(right.shotNumber)
+  );
+}
+
 function holeReachedGreenInRegulation(shots,hole) {
   let strokesUsed=0;
   const target=Number(hole?.par)-2;

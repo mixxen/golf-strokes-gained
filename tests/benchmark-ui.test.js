@@ -62,6 +62,20 @@ test('round workspace puts hole selection and stroke entry before round analytic
   assert.ok(roundSummary<analytics);
 });
 
+test('round workspace ends with a filterable best-to-worst stroke leaderboard',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  const analytics=html.indexOf('id="analytics-heading"');
+  const leaderboard=html.indexOf('id="shot-leaderboard-heading"');
+  assert.ok(analytics>=0&&analytics<leaderboard);
+  assert.match(html,/id="round-shot-ranking"/);
+  assert.deepEqual(
+    [...html.matchAll(/data-shot-filter="([^"]+)"/g)].map((match)=>match[1]),
+    ['all','drive','approach','chip','putt','bunker','penalty']
+  );
+  assert.match(app,/rankedShots/);
+  assert.match(app,/renderShotLeaderboard/);
+});
+
 test('shot cards show the calculated shot distance',async()=>{
   const app=await read('js/app.js');
   assert.match(app,/function shotDistanceDescription/);

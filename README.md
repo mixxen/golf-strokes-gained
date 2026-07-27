@@ -20,6 +20,7 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 - A workflow-first round screen with hole selection, stroke entry, and hole history above all statistics
 - Round analytics for SG by category and starting-distance bucket
 - GIR, scrambling, putting, fairway, penalty, best/worst-stroke, and dispersion insights
+- A best-to-worst leaderboard for every stroke with category, bunker, and penalty filters
 - A dedicated, user-facing strokes-gained methodology page
 - Local browser persistence with schema migration and recalculation
 - GitHub Pages deployment and automated calculation tests
