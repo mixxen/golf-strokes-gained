@@ -41,8 +41,21 @@ test('course lookup UI includes hole-level manual fallback and no separate cours
   assert.match(app,/createOpenGolfApiProvider/);
   assert.match(app,/createCourseCache/);
   assert.match(app,/courseData/);
-  assert.match(app,/preferredTeeKey:round\.courseData\.teeKey/);
+  assert.match(app,/roundStore\.save\(round\)/);
   assert.match(app,/changingLoadedCourse/);
+});
+
+test('landing page separates round history, setup, and the round workspace',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  assert.match(html,/id="rounds-home"/);
+  assert.match(html,/id="round-list"/);
+  assert.match(html,/id="round-setup-panel"/);
+  assert.match(html,/id="workspace-heading"/);
+  assert.match(html,/Start a new round/);
+  assert.match(app,/#\/rounds/);
+  assert.match(app,/#\/round\/new/);
+  assert.match(app,/renderRoundList/);
+  assert.match(app,/roundStore\.migrateLegacy/);
 });
 
 test('course import does not claim a tee loaded when only pars are available',async()=>{

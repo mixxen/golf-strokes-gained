@@ -4,6 +4,10 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 
 ## Current capabilities
 
+- A round-history landing page, ordered newest first, with date, progress, score, and strokes gained
+- Multiple locally saved rounds with refresh-safe URLs and automatic migration from the original single-round storage
+- A focused new-round setup flow, separate from the scorecard and shot-entry workspace
+- Read-only review for completed rounds with an explicit option to resume editing
 - Persistent 18-hole scorecard with per-hole par and tee distance
 - OpenGolfAPI course search, persistent tee selection, scorecard import, and tee switching
 - Local course cache, recent courses, offline fallback, and manual entry

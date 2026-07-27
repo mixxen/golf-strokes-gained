@@ -11,11 +11,12 @@ import {
 } from './calculations.js';
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
-import {applyCourseTee,savedTeeKey,teeIsSelectable} from './course-round.js';
+import {applyCourseTee,teeIsSelectable} from './course-round.js';
 import {remainingDistanceFromShot,shotDistanceFromRemaining} from './distance-input.js';
+import {createRoundStore} from './round-store.js';
 
-const STORAGE_KEY='golf-strokes-gained-round-v8';
-const PRIOR_KEYS=[
+const LEGACY_ROUND_KEYS=[
+  'golf-strokes-gained-round-v8',
   'golf-strokes-gained-round-v7',
   'golf-strokes-gained-round-v6',
   'golf-strokes-gained-round-v5',
@@ -35,6 +36,7 @@ const DEFAULT_CLUBS={drive:'Driver',approach:'',chip:'Sand wedge',putt:'Putter'}
 const DEFAULT_DISTANCE_BY_PAR={3:170,4:400,5:520};
 const courseProvider=createOpenGolfApiProvider();
 const courseCache=createCourseCache(localStorage);
+const roundStore=createRoundStore(localStorage);
 
 function localDate(){
   const now=new Date();
@@ -57,7 +59,11 @@ const defaultDraft=()=>({
 });
 const defaultHole=(number)=>({number,par:4,teeDistance:400,draft:defaultDraft()});
 const defaultRound=()=>({
-  schemaVersion:8,
+  schemaVersion:9,
+  id:id(),
+  createdAt:new Date().toISOString(),
+  updatedAt:new Date().toISOString(),
+  status:'in-progress',
   courseName:'',
   courseData:null,
   date:localDate(),
@@ -68,7 +74,10 @@ const defaultRound=()=>({
   recentClubs:{...DEFAULT_CLUBS}
 });
 
-let round=loadRound();
+let round=defaultRound();
+let activeView='home';
+let roundReadOnly=false;
+let creatingRound=false;
 let selectedZone=null;
 let selectedLocation=null;
 let editingShotId=null;
@@ -78,6 +87,20 @@ let courseRequestController=null;
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
+  home:$('#rounds-home'),
+  roundList:$('#round-list'),
+  roundEmpty:$('#round-empty'),
+  setupPanel:$('#round-setup-panel'),
+  homeButton:$('#home-button'),
+  newRoundButton:$('#new-round-button'),
+  workspaceSections:[...document.querySelectorAll('.workspace-section')],
+  workspaceCourseName:$('#workspace-course-name'),
+  workspaceRoundMeta:$('#workspace-round-meta'),
+  workspaceRoundStatus:$('#workspace-round-status'),
+  workspaceDate:$('#workspace-date'),
+  workspaceCourseSource:$('#workspace-course-source'),
+  editRoundButton:$('#edit-round-button'),
+  deleteRoundButton:$('#delete-round-button'),
   date:$('#round-date'),
   courseSearchForm:$('#course-search-form'),
   courseSearch:$('#course-search'),
@@ -209,6 +232,10 @@ function normalizeShot(shot){
 function migrateRound(data){
   const base=defaultRound();
   if(!data) return base;
+  base.id=data.id||base.id;
+  base.createdAt=data.createdAt||data.updatedAt||base.createdAt;
+  base.updatedAt=data.updatedAt||base.updatedAt;
+  base.status=data.status||'in-progress';
   base.courseName=data.courseName||'';
   base.courseData=data.courseData||null;
   base.date=data.date||base.date;
@@ -239,19 +266,174 @@ function migrateRound(data){
   return base;
 }
 
-function loadRound(){
-  try {
-    const raw=localStorage.getItem(STORAGE_KEY)||PRIOR_KEYS.map((key)=>localStorage.getItem(key)).find(Boolean)||'null';
-    return migrateRound(JSON.parse(raw));
-  } catch {
-    return defaultRound();
-  }
+function summariesFor(targetRound){
+  return targetRound.holes.slice(0,targetRound.holeCount).map((hole)=>{
+    const shots=targetRound.shots.filter((shot)=>shot.hole===hole.number).sort((a,b)=>a.shotNumber-b.shotNumber);
+    return summarizeHole(shots,{par:hole.par,teeDistance:hole.teeDistance});
+  });
+}
+
+function roundIsComplete(targetRound=round){
+  const summaries=summariesFor(targetRound);
+  return summaries.length>0&&summaries.every((summary)=>summary.complete);
 }
 
 function persist(message='Saved locally'){
-  round.date=elements.date.value;
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(round));
+  if(!round?.id||activeView==='home') return;
+  round.date=elements.workspaceDate?.value||elements.date.value||round.date;
+  round.status=roundIsComplete()?'complete':'in-progress';
+  round=roundStore.save(round);
   elements.saveStatus.textContent=message;
+}
+
+function formatRoundDate(value){
+  if(!value) return 'Date not set';
+  const parsed=new Date(`${value}T12:00:00`);
+  return Number.isNaN(parsed.valueOf())?value:new Intl.DateTimeFormat(undefined,{
+    weekday:'long',
+    month:'long',
+    day:'numeric',
+    year:'numeric'
+  }).format(parsed);
+}
+
+function roundDisplayName(targetRound){
+  return targetRound.courseName||'Manual round';
+}
+
+function renderRoundList(){
+  const rounds=roundStore.list();
+  elements.roundEmpty.classList.toggle('hidden',rounds.length>0);
+  elements.roundList.innerHTML=rounds.map((item)=>{
+    const summaries=summariesFor(item);
+    const completed=summaries.filter((summary)=>summary.complete).length;
+    const score=summaries.reduce((sum,summary)=>sum+summary.score,0);
+    const sg=item.shots.reduce((sum,shot)=>sum+Number(shot.calculation?.strokesGained||0),0);
+    const complete=roundIsComplete(item);
+    return `<article class="round-card">
+      <button type="button" class="round-card-button" data-open-round="${escapeHtml(item.id)}">
+        <span class="round-card-date">${escapeHtml(formatRoundDate(item.date))}</span>
+        <h3>${escapeHtml(roundDisplayName(item))}</h3>
+        <span class="round-card-detail">${complete?'Completed':`${completed}/${item.holeCount} holes completed`}${item.courseData?.teeName?` · ${escapeHtml(item.courseData.teeName)} tees`:''}</span>
+      </button>
+      <div class="round-card-metrics">
+        <span class="round-card-metric"><span>Score</span><strong>${score||'—'}</strong></span>
+        <span class="round-card-metric"><span>Total SG</span><strong class="${sg>=0?'sg-positive':'sg-negative'}">${item.shots.length?formatSg(sg):'—'}</strong></span>
+        <button type="button" class="round-card-button round-card-chevron" data-open-round="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(roundDisplayName(item))}">›</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function setVisibleView(view){
+  activeView=view;
+  elements.home.classList.toggle('hidden',view!=='home');
+  elements.setupPanel.classList.toggle('hidden',view!=='setup');
+  elements.workspaceSections.forEach((section)=>section.classList.toggle('hidden',view!=='workspace'));
+  elements.homeButton.classList.toggle('hidden',view==='home');
+  elements.newRoundButton.classList.toggle('hidden',view==='setup');
+}
+
+function showHome(){
+  if(activeView==='workspace'&&!roundReadOnly) persist();
+  creatingRound=false;
+  setVisibleView('home');
+  renderRoundList();
+}
+
+function resetCoursePicker(){
+  selectedCourse=null;
+  selectedTeeKey=null;
+  elements.courseSearch.value='';
+  elements.courseResults.innerHTML='';
+  elements.selectedCoursePanel.classList.add('hidden');
+  elements.courseSearchStatus.textContent="Search for a course and choose tees, or start with manual hole entry.";
+}
+
+function beginNewRound(){
+  round=defaultRound();
+  creatingRound=true;
+  roundReadOnly=false;
+  selectedZone=null;
+  selectedLocation=null;
+  editingShotId=null;
+  resetCoursePicker();
+  elements.date.value=round.date;
+  elements.saveStatus.textContent='Not saved yet';
+  renderCourseSource();
+  renderRecentCourses();
+  setVisibleView('setup');
+}
+
+function firstIncompleteHole(targetRound){
+  const summaries=summariesFor(targetRound);
+  const index=summaries.findIndex((summary)=>!summary.complete);
+  return index>=0?index+1:targetRound.currentHole||1;
+}
+
+function applyWorkspaceMode(){
+  const complete=roundIsComplete();
+  roundReadOnly=complete&&roundReadOnly;
+  elements.workspaceRoundStatus.textContent=complete?'Completed round':'Round in progress';
+  elements.editRoundButton.classList.toggle('hidden',!roundReadOnly);
+  elements.entryPanel.classList.toggle('hidden',roundReadOnly);
+  elements.par.disabled=roundReadOnly;
+  elements.holeDistance.disabled=roundReadOnly;
+  $('#undo-button').classList.toggle('hidden',roundReadOnly);
+  elements.workspaceDate.disabled=roundReadOnly;
+}
+
+function renderWorkspaceHeading(){
+  elements.workspaceCourseName.textContent=roundDisplayName(round);
+  elements.workspaceRoundMeta.textContent=`${formatRoundDate(round.date)}${round.courseData?.teeName?` · ${round.courseData.teeName} tees`:''}`;
+  elements.workspaceDate.value=round.date;
+  elements.date.value=round.date;
+  elements.workspaceCourseSource.textContent=round.courseData
+    ? `Scorecard from OpenGolfAPI${round.courseData.modified?' with local hole edits':''}.`
+    : 'Manually entered scorecard.';
+  applyWorkspaceMode();
+}
+
+function openRound(roundId){
+  const stored=roundStore.get(roundId);
+  if(!stored){
+    location.hash='#/rounds';
+    return;
+  }
+  round=migrateRound(stored);
+  round.currentHole=firstIncompleteHole(round);
+  roundReadOnly=roundIsComplete();
+  creatingRound=false;
+  editingShotId=null;
+  selectedZone=null;
+  selectedLocation=null;
+  round.holes.forEach((hole)=>recalculateHoleShots(hole.number));
+  setVisibleView('workspace');
+  restoreDraft();
+  render();
+  renderWorkspaceHeading();
+}
+
+function finishRoundSetup(){
+  round.date=elements.date.value||localDate();
+  round.status='in-progress';
+  round=roundStore.save(round);
+  creatingRound=false;
+  location.hash=`#/round/${encodeURIComponent(round.id)}`;
+}
+
+function route(){
+  const hash=location.hash||'#/rounds';
+  if(hash==='#/round/new'){
+    beginNewRound();
+    return;
+  }
+  const match=hash.match(/^#\/round\/([^/]+)$/);
+  if(match){
+    openRound(decodeURIComponent(match[1]));
+    return;
+  }
+  showHome();
 }
 
 function courseLocation(course){
@@ -414,6 +596,10 @@ function importSelectedCourse({teeKey=selectedTeeKey}={}){
   selectedZone=null;
   selectedLocation=null;
   editingShotId=null;
+  if(creatingRound){
+    finishRoundSetup();
+    return true;
+  }
   persist(`${imported} hole${imported===1?'':'s'} loaded`);
   restoreDraft();
   render();
@@ -747,6 +933,12 @@ function restoreDraft(){
 }
 
 function switchHole(number){
+  if(roundReadOnly){
+    round.currentHole=number;
+    restoreDraft();
+    render();
+    return;
+  }
   if(number===round.currentHole) return;
   if(!editingShotId&&!holeIsComplete()) saveDraft();
   cancelEdit(false);
@@ -879,6 +1071,7 @@ function saveShot(){
 }
 
 function editShot(idToEdit){
+  if(roundReadOnly) return;
   const shot=round.shots.find((item)=>item.id===idToEdit);
   if(!shot) return;
   editingShotId=idToEdit;
@@ -911,6 +1104,7 @@ function cancelEdit(restore=true){
 }
 
 function deleteShot(idToDelete){
+  if(roundReadOnly) return;
   const shot=round.shots.find((item)=>item.id===idToDelete);
   if(!shot) return;
   const later=shotsForHole(shot.hole).filter((item)=>item.shotNumber>shot.shotNumber).length;
@@ -926,6 +1120,7 @@ function deleteShot(idToDelete){
 }
 
 function undoHole(){
+  if(roundReadOnly) return;
   const shot=lastShot();
   if(!shot) return;
   round.shots=round.shots.filter((item)=>item.id!==shot.id);
@@ -990,7 +1185,8 @@ function renderHoleShots(){
   elements.holeShotList.innerHTML=shots.length?shots.map((shot)=>{
     const playing=strokeNumberForShot(shot);
     const penalty=Number(shot.calculation.penaltyStrokes||0);
-    return `<article class="shot-card"><div class="shot-card-main"><span class="shot-number">${playing}</span><div><strong>${typeLabel(shot.type)}${shot.club?` · ${shot.club}`:''}${penalty?` · +${penalty} penalty`:''}</strong><p>${titleCase(shot.start.lie)} ${formatDistance(shot.start.distance)} ${unitLabel(shot.start.unit)} → ${finishDescription(shot)}</p><p class="calculation-line">Expected ${shot.calculation.expectedBefore.toFixed(2)} → ${shot.calculation.expectedAfter.toFixed(2)} · cost ${shot.calculation.strokeCost} · SG ${formatSg(shot.calculation.strokesGained)}</p></div><strong class="${shot.calculation.strokesGained>=0?'sg-positive':'sg-negative'}">${formatSg(shot.calculation.strokesGained)}</strong></div><div class="shot-actions"><button type="button" data-edit="${shot.id}">Edit</button><button type="button" data-delete="${shot.id}" class="danger-button">Delete from here</button></div></article>`;
+    const actions=roundReadOnly?'':`<div class="shot-actions"><button type="button" data-edit="${shot.id}">Edit</button><button type="button" data-delete="${shot.id}" class="danger-button">Delete from here</button></div>`;
+    return `<article class="shot-card"><div class="shot-card-main"><span class="shot-number">${playing}</span><div><strong>${typeLabel(shot.type)}${shot.club?` · ${shot.club}`:''}${penalty?` · +${penalty} penalty`:''}</strong><p>${titleCase(shot.start.lie)} ${formatDistance(shot.start.distance)} ${unitLabel(shot.start.unit)} → ${finishDescription(shot)}</p><p class="calculation-line">Expected ${shot.calculation.expectedBefore.toFixed(2)} → ${shot.calculation.expectedAfter.toFixed(2)} · cost ${shot.calculation.strokeCost} · SG ${formatSg(shot.calculation.strokesGained)}</p></div><strong class="${shot.calculation.strokesGained>=0?'sg-positive':'sg-negative'}">${formatSg(shot.calculation.strokesGained)}</strong></div>${actions}</article>`;
   }).join(''):'<p class="empty-state">No strokes recorded on this hole. Add the tee shot above.</p>';
 }
 
@@ -1001,6 +1197,7 @@ function renderMissSummary(){
 
 function render(){
   elements.date.value=round.date;
+  elements.workspaceDate.value=round.date;
   renderCourseSource();
   renderRecentCourses();
   const totals=round.shots.reduce((sum,shot)=>sum+Number(shot.calculation.strokesGained||0),0);
@@ -1015,9 +1212,15 @@ function render(){
   renderMissSummary();
   if(holeIsComplete()&&!editingShotId) renderCompletePanel();
   else updateContext();
+  if(activeView==='workspace') renderWorkspaceHeading();
 }
 
 document.addEventListener('click',(event)=>{
+  const openRoundButton=event.target.closest('[data-open-round]');
+  if(openRoundButton){
+    location.hash=`#/round/${encodeURIComponent(openRoundButton.dataset.openRound)}`;
+    return;
+  }
   const courseButton=event.target.closest('[data-course-id]');
   if(courseButton) loadCourse(courseButton.dataset.courseId,{preferredTeeKey:courseButton.dataset.preferredTee||null});
   const teeButton=event.target.closest('[data-tee-key]');
@@ -1067,11 +1270,13 @@ elements.manualCourseButton.addEventListener('click',()=>{
   selectedTeeKey=null;
   elements.selectedCoursePanel.classList.add('hidden');
   elements.courseResults.innerHTML='';
-  if(round.courseData){
-    round.courseData=null;
-    round.courseName='';
-    persist('Manual course entry enabled');
+  round.courseData=null;
+  round.courseName='Manual round';
+  if(creatingRound){
+    finishRoundSetup();
+    return;
   }
+  persist('Manual course entry enabled');
   renderCourseSource();
   elements.courseSearchStatus.textContent='Manual entry is active. Edit the par and tee distance for each hole below; changes save locally.';
   elements.par.focus();
@@ -1125,41 +1330,45 @@ elements.holeDistance.addEventListener('change',()=>{
   render();
 });
 
-elements.date.addEventListener('change',()=>persist());
+elements.date.addEventListener('change',()=>{
+  round.date=elements.date.value;
+  if(!creatingRound) persist();
+});
 elements.date.addEventListener('input',()=>{ elements.saveStatus.textContent='Unsaved changes'; });
+elements.workspaceDate.addEventListener('change',()=>{
+  round.date=elements.workspaceDate.value;
+  elements.date.value=round.date;
+  persist();
+  renderWorkspaceHeading();
+});
 
 $('#undo-button').addEventListener('click',undoHole);
 elements.cancelEditButton.addEventListener('click',()=>cancelEdit());
 elements.editLastShotButton.addEventListener('click',()=>{ const shot=lastShot(); if(shot) editShot(shot.id); });
 elements.nextHoleButton.addEventListener('click',()=>{ const next=Number(elements.nextHoleButton.dataset.nextHole); if(next) switchHole(next); });
-$('#new-round-button').addEventListener('click',()=>{
-  if(!confirm('Start a new round and erase the locally saved round?')) return;
-  round=defaultRound();
-  localStorage.removeItem(STORAGE_KEY);
-  selectedZone=null;
-  selectedLocation=null;
-  editingShotId=null;
-  selectedCourse=null;
-  selectedTeeKey=null;
-  elements.courseResults.innerHTML='';
-  elements.selectedCoursePanel.classList.add('hidden');
-  elements.courseSearchStatus.textContent="Search is optional. You can always edit each hole's par and tee distance below.";
+function startNewRound(){ location.hash='#/round/new'; }
+
+elements.newRoundButton.addEventListener('click',startNewRound);
+$('#home-new-round-button').addEventListener('click',startNewRound);
+$('#empty-new-round-button').addEventListener('click',startNewRound);
+elements.homeButton.addEventListener('click',()=>{ location.hash='#/rounds'; });
+elements.editRoundButton.addEventListener('click',()=>{
+  roundReadOnly=false;
+  applyWorkspaceMode();
   restoreDraft();
-  render();
+  renderHoleShots();
 });
-window.addEventListener('beforeunload',()=>{ if(!editingShotId&&!holeIsComplete()) saveDraft(); });
+elements.deleteRoundButton.addEventListener('click',()=>{
+  if(!confirm(`Delete ${roundDisplayName(round)}? This round cannot be recovered.`)) return;
+  roundStore.remove(round.id);
+  activeView='home';
+  location.hash='#/rounds';
+});
+window.addEventListener('beforeunload',()=>{
+  if(activeView==='workspace'&&!roundReadOnly&&!editingShotId&&!holeIsComplete()) saveDraft();
+});
+window.addEventListener('hashchange',route);
 
-round.holes.forEach((hole)=>recalculateHoleShots(hole.number));
-restoreDraft();
-render();
-persist();
-
-if(round.courseData?.courseId){
-  loadCourse(round.courseData.courseId,{
-    preferredTeeKey:round.courseData.teeKey,
-    scroll:false
-  }).then(()=>{
-    const persistedTee=savedTeeKey(round,selectedCourse);
-    if(persistedTee) chooseTee(persistedTee);
-  });
-}
+roundStore.migrateLegacy(LEGACY_ROUND_KEYS,migrateRound);
+if(!location.hash) location.hash='#/rounds';
+else route();
