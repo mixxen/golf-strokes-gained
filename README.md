@@ -141,6 +141,17 @@ Run the calculation tests with:
 npm test
 ```
 
+## Private PGA development fixture
+
+A one-time importer can normalize one player's public shot-detail record for
+internal calculation and analytics testing. It defaults to Rory McIlroy at the
+2025 THE PLAYERS Championship. Downloaded records are written only beneath the
+gitignored `data/private/` directory and are never included in the deployed
+site.
+
+See [Private PGA shot fixture](docs/private-pga-fixture.md) for the expected
+summary, data fields, usage boundaries, and import instructions.
+
 ## GitHub Pages
 
 The repository deploys the static site whenever changes are pushed to `main`. Configure **Settings → Pages → Build and deployment → Source** to **GitHub Actions** if needed.
