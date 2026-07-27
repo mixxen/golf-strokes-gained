@@ -4,14 +4,33 @@ import { readFile } from 'node:fs/promises';
 
 const read=(path)=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
-test('app discloses the Broadie benchmark and equation',async()=>{
-  const html=await read('index.html');
-  assert.match(html,/PGA TOUR — Broadie 2003–2010/);
-  assert.match(html,/SG = J\(start lie, distance\) − 1 − J\(finish lie, distance\)/);
-  assert.match(html,/Historical · unadjusted/);
-  assert.match(html,/assessing_golfer_performance\.full\.pdf/);
-  assert.match(html,/putting_strokes_gained_20110113\.pdf/);
-  assert.match(html,/benchmark\.css/);
+test('app links to a dedicated Broadie benchmark methodology page',async()=>{
+  const [html,methodology]=await Promise.all([
+    read('index.html'),
+    read('methodology.html')
+  ]);
+  assert.match(html,/href="methodology\.html"/);
+  assert.doesNotMatch(html,/class="panel benchmark-panel/);
+  assert.match(methodology,/PGA TOUR — Broadie 2003–2010/);
+  assert.match(methodology,/SG = J\(start lie, distance\) − 1 − J\(finish lie, distance\)/);
+  assert.match(methodology,/Historical · unadjusted/);
+  assert.match(methodology,/assessing_golfer_performance\.full\.pdf/);
+  assert.match(methodology,/putting_strokes_gained_20110113\.pdf/);
+  assert.match(methodology,/benchmark\.css/);
+});
+
+test('round workspace includes category, distance, overview, and dispersion analytics',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  assert.match(html,/id="category-sg-chart"/);
+  assert.match(html,/id="distance-sg-chart"/);
+  assert.match(html,/id="gir-rate"/);
+  assert.match(html,/id="scrambling-rate"/);
+  assert.match(html,/id="putts-per-hole"/);
+  assert.match(html,/data-miss-filter="drive"/);
+  assert.match(html,/data-miss-filter="approach"/);
+  assert.match(app,/roundAnalytics/);
+  assert.match(app,/renderDivergingChart/);
+  assert.match(app,/missZoneBreakdown/);
 });
 
 test('benchmark methodology documents mappings and range limits',async()=>{

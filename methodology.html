@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123c2d">
+  <title>Strokes-Gained Methodology · Golf Strokes Gained</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="benchmark.css">
+</head>
+<body>
+  <header class="app-header">
+    <div><p class="eyebrow">Golf Strokes Gained</p><h1>Methodology</h1></div>
+    <a class="secondary-button methodology-back" href="./">← Back to the app</a>
+  </header>
+
+  <main class="methodology-page">
+    <section class="methodology-hero">
+      <p class="eyebrow">Comparison baseline</p>
+      <h2>PGA TOUR — Broadie 2003–2010</h2>
+      <p>Every stroke is compared with the expected number of strokes a PGA TOUR player needed to hole out from the same lie and distance in Mark Broadie’s published ShotLink benchmark.</p>
+      <span class="benchmark-badge">Historical · unadjusted</span>
+    </section>
+
+    <section class="panel methodology-section">
+      <h2>The calculation</h2>
+      <p>A shot gains strokes when it improves the golfer’s expected position by more than the one stroke it cost to play.</p>
+      <div class="benchmark-equation" aria-label="Strokes gained equation">SG = J(start lie, distance) − 1 − J(finish lie, distance)</div>
+      <p><code>J</code> is the expected number of strokes needed to hole out. A penalty adds another stroke to the cost. A standard stroke-and-distance result is therefore exactly −2.00 SG.</p>
+    </section>
+
+    <section class="panel methodology-section">
+      <h2>Benchmark and lie mapping</h2>
+      <p>Off-green values come from Broadie’s Table B.1, estimated from more than eight million PGA TOUR ShotLink strokes from 2003–2010. Putting uses his published PGA TOUR putting table.</p>
+      <div class="methodology-table-wrap">
+        <table class="methodology-table">
+          <thead><tr><th>App result</th><th>Benchmark state</th></tr></thead>
+          <tbody>
+            <tr><td>Fairway</td><td>Fairway</td></tr>
+            <tr><td>First cut, rough, or unobstructed deep rough</td><td>Rough</td></tr>
+            <tr><td>Fairway or greenside bunker</td><td>Sand</td></tr>
+            <tr><td>Trees, blocked route, or required pitch-out</td><td>Recovery</td></tr>
+            <tr><td>Fringe</td><td>Fairway proxy</td></tr>
+            <tr><td>Putting surface</td><td>Green</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Values between published distances use linear interpolation. Values outside the published range use the nearest endpoint instead of undocumented extrapolation.</p>
+    </section>
+
+    <section class="panel methodology-section">
+      <h2>What the category totals mean</h2>
+      <p>The app reports off-the-tee, approach, around-the-green, and putting SG. These labels only decide which subtotal receives a shot; they do not change the shot’s SG calculation.</p>
+      <p>PGA TOUR defines around the green as a shot played off the putting surface within 30 yards of the green’s edge. The app currently infers this category using distance to the flag because green-edge geometry is not yet available. This conservative rule can place some official around-the-green shots in the approach subtotal, but it does not change total SG.</p>
+    </section>
+
+    <section class="panel methodology-section">
+      <h2>Important limitations</h2>
+      <ul>
+        <li>The benchmark is historical and is not the PGA TOUR’s unpublished current lookup surface.</li>
+        <li>Results are not adjusted for event, course, round, weather, or field strength.</li>
+        <li>The public off-green table starts at 10 yards, so shorter results use that endpoint.</li>
+        <li>Fringe uses a documented fairway proxy because the public benchmark has no separate fringe state.</li>
+        <li>Green-edge distance or an explicit category override remains a future improvement.</li>
+      </ul>
+    </section>
+
+    <section class="panel methodology-section">
+      <h2>Primary references</h2>
+      <div class="source-links">
+        <a href="https://business.columbia.edu/sites/default/files-efs/pubfiles/4996/assessing_golfer_performance.full.pdf" target="_blank" rel="noopener">Broadie 2012 — off-green benchmark</a>
+        <a href="https://www.columbia.edu/~mnb2/broadie/Assets/putting_strokes_gained_20110113.pdf" target="_blank" rel="noopener">Broadie 2011 — putting benchmark</a>
+        <a href="https://www.pgatour.com/korn-ferry-tour/stats/detail/331" target="_blank" rel="noopener">PGA TOUR — around-the-green definition</a>
+        <a href="docs/strokes-gained-methodology.md">Implementation notes</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
