@@ -11,12 +11,28 @@
 <body>
   <header class="app-header">
     <div><p class="eyebrow">Round analyzer</p><h1>Golf Strokes Gained</h1></div>
-    <button id="new-round-button" class="secondary-button" type="button">New round</button>
+    <div class="header-actions">
+      <button id="home-button" class="secondary-button hidden" type="button">← My rounds</button>
+      <button id="new-round-button" class="secondary-button" type="button">New round</button>
+    </div>
   </header>
 
   <main>
-    <section class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Round</p><h2>Setup</h2></div><p id="save-status" class="status-text">Saved locally</p></div>
+    <section id="rounds-home" class="home-view">
+      <div class="home-hero">
+        <div><p class="eyebrow">Your golf</p><h2>My rounds</h2><p>Continue an unfinished round or review a completed scorecard.</p></div>
+        <button id="home-new-round-button" class="primary-button" type="button">Start a new round</button>
+      </div>
+      <div id="round-list" class="round-list" aria-live="polite"></div>
+      <div id="round-empty" class="panel empty-rounds hidden">
+        <h3>No rounds yet</h3>
+        <p>Start a round, choose your course and tees, then record each stroke in order.</p>
+        <button id="empty-new-round-button" class="primary-button" type="button">Start your first round</button>
+      </div>
+    </section>
+
+    <section id="round-setup-panel" class="panel hidden">
+      <div class="section-heading"><div><p class="eyebrow">New round</p><h2>Choose a course</h2></div><p id="save-status" class="status-text">Not saved yet</p></div>
       <div class="form-grid round-grid"><label>Date<input id="round-date" type="date"></label></div>
       <div class="course-tools">
         <div class="course-tool-heading">
@@ -53,7 +69,26 @@
       </div>
     </section>
 
-    <section class="panel hole-panel">
+    <section id="workspace-heading" class="panel workspace-section hidden">
+      <div class="workspace-title">
+        <div>
+          <p id="workspace-round-status" class="eyebrow">Round in progress</p>
+          <h2 id="workspace-course-name">Round</h2>
+          <p id="workspace-round-meta" class="helper-text"></p>
+        </div>
+        <button id="edit-round-button" class="secondary-button hidden" type="button">Edit round</button>
+      </div>
+      <details class="round-settings">
+        <summary>Round settings</summary>
+        <div class="form-grid round-grid">
+          <label>Date<input id="workspace-date" type="date"></label>
+        </div>
+        <p id="workspace-course-source" class="helper-text"></p>
+        <button id="delete-round-button" class="danger-button" type="button">Delete this round</button>
+      </details>
+    </section>
+
+    <section class="panel hole-panel workspace-section hidden">
       <div class="section-heading"><div><p class="eyebrow">Scorecard</p><h2>Select a hole</h2></div><div id="hole-save-state" class="context-pill">Hole 1 saved</div></div>
       <div id="hole-selector" class="hole-selector" role="tablist" aria-label="Select hole"></div>
       <div class="hole-settings">
@@ -64,7 +99,7 @@
       </div>
     </section>
 
-    <section class="summary-grid" aria-label="Round summary">
+    <section class="summary-grid workspace-section hidden" aria-label="Round summary">
       <article class="metric-card primary-metric"><span>Total SG</span><strong id="total-sg">0.00</strong></article>
       <article class="metric-card"><span>Driving SG</span><strong id="sg-off-tee">0.00</strong></article>
       <article class="metric-card"><span>Fairways</span><strong id="fairway-rate">—</strong></article>
@@ -72,7 +107,7 @@
       <article class="metric-card"><span>Drive penalties</span><strong id="drive-penalties">0</strong></article>
     </section>
 
-    <section class="panel benchmark-panel" aria-labelledby="benchmark-heading">
+    <section class="panel benchmark-panel workspace-section hidden" aria-labelledby="benchmark-heading">
       <div class="benchmark-heading">
         <div>
           <p class="eyebrow">Comparison baseline</p>
@@ -95,7 +130,7 @@
       </details>
     </section>
 
-    <section class="panel" id="shot-entry-panel">
+    <section class="panel workspace-section hidden" id="shot-entry-panel">
       <div class="shot-context">
         <div><p class="eyebrow" id="form-mode-label">Next stroke</p><h2 id="shot-title">Drive</h2></div>
         <div id="shot-context-text" class="context-pill">Hole 1 · Playing 1</div>
@@ -169,12 +204,12 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel workspace-section hidden">
       <div class="section-heading"><div><p class="eyebrow">Current hole</p><h2 id="hole-log-title">Hole 1 strokes</h2></div><button id="undo-button" class="text-button" type="button">Undo last</button></div>
       <div id="hole-shot-list" class="shot-card-list"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel workspace-section hidden">
       <div class="section-heading"><div><p class="eyebrow">Driving pattern</p><h2>Miss distribution</h2></div></div>
       <div id="miss-summary" class="miss-summary"></div>
     </section>
