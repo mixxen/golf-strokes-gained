@@ -40,8 +40,9 @@ test('landing page aggregates recent completed personal rounds with quick ranges
   assert.match(html,/id="aggregate-category-chart"/);
   assert.deepEqual(
     [...html.matchAll(/data-round-limit="(\d+)"/g)].map((match)=>Number(match[1])),
-    [5,10,20,40]
+    [3,5,10,20,40]
   );
+  assert.match(html,/class="selected" aria-pressed="true" data-round-limit="3"/);
   assert.match(app,/aggregateRoundsAnalytics/);
   assert.match(app,/renderAggregateStats/);
   assert.match(app,/!item\.testData&&roundIsComplete\(item\)/);

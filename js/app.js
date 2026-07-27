@@ -86,7 +86,7 @@ let selectedCourse=null;
 let selectedTeeKey=null;
 let courseRequestController=null;
 let missFilter='drive';
-let aggregateRoundLimit=5;
+let aggregateRoundLimit=3;
 
 const $=(selector)=>document.querySelector(selector);
 const elements={
@@ -1394,7 +1394,7 @@ function render(){
 document.addEventListener('click',(event)=>{
   const roundLimitButton=event.target.closest('[data-round-limit]');
   if(roundLimitButton){
-    aggregateRoundLimit=Number(roundLimitButton.dataset.roundLimit)||5;
+    aggregateRoundLimit=Number(roundLimitButton.dataset.roundLimit)||3;
     document.querySelectorAll('[data-round-limit]').forEach((button)=>{
       const selected=Number(button.dataset.roundLimit)===aggregateRoundLimit;
       button.classList.toggle('selected',selected);

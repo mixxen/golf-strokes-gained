@@ -249,3 +249,12 @@ test('limits the aggregate to the requested number of recent rounds',()=>{
   assert.equal(result.roundCount,5);
   assert.equal(result.totalSg,15);
 });
+
+test('defaults the recent-form aggregate to three rounds',()=>{
+  const rounds=Array.from({length:5},()=>({
+    shots,
+    holes:[{number:1,par:4,teeDistance:400}],
+    holeCount:1
+  }));
+  assert.equal(aggregateRoundsAnalytics(rounds).roundCount,3);
+});

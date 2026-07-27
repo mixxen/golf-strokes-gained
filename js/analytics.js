@@ -170,8 +170,8 @@ export function roundAnalytics(shots=[],holes=[]) {
   };
 }
 
-export function aggregateRoundsAnalytics(rounds=[],limit=5) {
-  const selected=rounds.slice(0,Math.max(1,Number(limit)||5));
+export function aggregateRoundsAnalytics(rounds=[],limit=3) {
+  const selected=rounds.slice(0,Math.max(1,Number(limit)||3));
   const summaries=selected.map((item)=>roundAnalytics(
     Array.isArray(item.shots)?item.shots:[],
     Array.isArray(item.holes)?item.holes.slice(0,Number(item.holeCount)||item.holes.length):[]
@@ -204,7 +204,7 @@ export function aggregateRoundsAnalytics(rounds=[],limit=5) {
   });
 
   return {
-    requestedLimit:Number(limit)||5,
+    requestedLimit:Number(limit)||3,
     roundCount,
     totalSg,
     averageSg:roundCount?totalSg/roundCount:null,
