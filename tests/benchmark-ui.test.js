@@ -33,6 +33,14 @@ test('round workspace includes category, distance, overview, and dispersion anal
   assert.match(app,/missZoneBreakdown/);
 });
 
+test('shot cards show the calculated shot distance',async()=>{
+  const app=await read('js/app.js');
+  assert.match(app,/function shotDistanceDescription/);
+  assert.match(app,/Shot distance/);
+  assert.match(app,/class="shot-distance"/);
+  assert.match(app,/shotDistanceFromRemaining/);
+});
+
 test('benchmark methodology documents mappings and range limits',async()=>{
   const methodology=await read('docs/strokes-gained-methodology.md');
   assert.match(methodology,/Deep rough, direct route available \| Rough/);
