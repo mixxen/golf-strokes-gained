@@ -12,6 +12,7 @@ import {
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,savedTeeKey,teeIsSelectable} from './course-round.js';
+import {remainingDistanceFromShot,shotDistanceFromRemaining} from './distance-input.js';
 
 const STORAGE_KEY='golf-strokes-gained-round-v8';
 const PRIOR_KEYS=[
@@ -110,6 +111,9 @@ const elements={
   endUnit:$('#end-unit'),
   endDistanceLabel:$('#end-distance-label'),
   endDistanceTitle:$('#end-distance-title'),
+  shotDistance:$('#shot-distance'),
+  shotUnit:$('#shot-unit'),
+  shotDistanceLabel:$('#shot-distance-label'),
   reliefLie:$('#relief-lie'),
   reliefLieLabel:$('#relief-lie-label'),
   distancePresets:$('#distance-presets'),
@@ -541,6 +545,31 @@ function renderDistancePresets(type,unit){
   elements.distancePresets.innerHTML=values.map((value)=>`<button type="button" data-distance="${value}">${value} ${unitLabel(unit)}</button>`).join('');
 }
 
+function roundedDistance(value){
+  if(!Number.isFinite(value)) return '';
+  return String(Math.round(value*10)/10);
+}
+
+function syncShotDistanceFromRemaining(){
+  const value=shotDistanceFromRemaining({
+    startDistance:elements.startDistance.value,
+    startUnit:unitForLie(elements.startLie.value),
+    remainingDistance:elements.endDistance.value,
+    remainingUnit:elements.endUnit.textContent==='ft'?'feet':'yards'
+  });
+  if(value!==null) elements.shotDistance.value=roundedDistance(value);
+}
+
+function syncRemainingDistanceFromShot(){
+  const value=remainingDistanceFromShot({
+    startDistance:elements.startDistance.value,
+    startUnit:unitForLie(elements.startLie.value),
+    shotDistance:elements.shotDistance.value,
+    remainingUnit:elements.endUnit.textContent==='ft'?'feet':'yards'
+  });
+  if(value!==null) elements.endDistance.value=roundedDistance(value);
+}
+
 function previewBaseShots(){
   if(!editingShotId) return shotsForHole();
   const editing=round.shots.find((shot)=>shot.id===editingShotId);
@@ -590,7 +619,9 @@ function applyLocationControls({focus=false}={}){
   elements.reliefLieLabel.classList.toggle('hidden',!RELIEF_LOCATIONS.has(location));
   elements.penaltyGuidance.classList.add('hidden');
   elements.endDistanceLabel.classList.remove('hidden');
+  elements.shotDistanceLabel.classList.remove('hidden');
   elements.endDistance.disabled=false;
+  elements.shotDistance.disabled=false;
   elements.endDistance.min=location==='holed'?'0':'1';
 
   let unit=type==='putt'?'feet':'yards';
@@ -603,11 +634,13 @@ function applyLocationControls({focus=false}={}){
     elements.endDistance.value=0;
     elements.endDistance.disabled=true;
     elements.endDistanceLabel.classList.add('hidden');
+    elements.shotDistance.disabled=true;
   } else if(location==='out-of-bounds'){
     unit=unitForLie(elements.startLie.value);
     elements.endDistanceTitle.textContent='Replay distance';
     elements.endDistance.value=elements.startDistance.value;
     elements.endDistance.disabled=true;
+    elements.shotDistance.disabled=true;
     elements.penaltyGuidance.textContent=`Stroke-and-distance: add one penalty stroke and replay from ${elements.startDistance.value} ${unitLabel(unit)} ${titleCase(elements.startLie.value)}. This outcome is exactly -2.00 SG.`;
     elements.penaltyGuidance.classList.remove('hidden');
   } else if(RELIEF_LOCATIONS.has(location)){
@@ -623,6 +656,8 @@ function applyLocationControls({focus=false}={}){
   }
 
   elements.endUnit.textContent=unitLabel(unit);
+  elements.shotUnit.textContent=unitLabel(unitForLie(elements.startLie.value));
+  syncShotDistanceFromRemaining();
   renderDistancePresets(type,unit);
   updateFinishPreview();
   updateSubmitButton();
@@ -699,6 +734,7 @@ function restoreDraft(){
   elements.startDistance.value=draft.startDistance;
   elements.club.value=draft.club;
   elements.endDistance.value=draft.endDistance;
+  syncShotDistanceFromRemaining();
   elements.reliefLie.value=draft.reliefLie||'rough';
   elements.intendedShape.value=draft.intendedShape;
   elements.contact.value=draft.contact;
@@ -1001,6 +1037,7 @@ document.addEventListener('click',(event)=>{
   const distanceButton=event.target.closest('[data-distance]');
   if(distanceButton){
     elements.endDistance.value=distanceButton.dataset.distance;
+    syncShotDistanceFromRemaining();
     saveDraft();
   }
 });
@@ -1042,10 +1079,20 @@ elements.manualCourseButton.addEventListener('click',()=>{
 
 elements.shotType.addEventListener('change',()=>{ updateContext(); saveDraft(); });
 elements.reliefLie.addEventListener('change',saveDraft);
-[elements.startLie,elements.startDistance,elements.club,elements.endDistance,elements.intendedShape,elements.contact,elements.notes].forEach((element)=>{
+[elements.startLie,elements.startDistance,elements.club,elements.intendedShape,elements.contact,elements.notes].forEach((element)=>{
   element.addEventListener('change',()=>{ saveDraft(); updateContext(); });
   element.addEventListener('input',()=>{ elements.saveStatus.textContent='Unsaved hole changes'; });
 });
+elements.endDistance.addEventListener('input',()=>{
+  syncShotDistanceFromRemaining();
+  elements.saveStatus.textContent='Unsaved hole changes';
+});
+elements.endDistance.addEventListener('change',()=>{ saveDraft(); updateContext(); });
+elements.shotDistance.addEventListener('input',()=>{
+  syncRemainingDistanceFromShot();
+  elements.saveStatus.textContent='Unsaved hole changes';
+});
+elements.shotDistance.addEventListener('change',()=>{ saveDraft(); updateContext(); });
 
 elements.par.addEventListener('change',()=>{
   markCourseModified();

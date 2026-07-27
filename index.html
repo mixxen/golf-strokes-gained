@@ -123,16 +123,17 @@
         <fieldset>
           <legend>Finishing result</legend>
           <div id="finish-location-grid" class="choice-grid">
-            <button type="button" aria-pressed="false" data-location="fairway">Fairway</button><button type="button" aria-pressed="false" data-location="first-cut">First cut</button><button type="button" aria-pressed="false" data-location="rough">Rough</button>
+            <button type="button" aria-pressed="false" data-location="fairway" class="featured-result-button">Fairway</button><button type="button" aria-pressed="false" data-location="first-cut">First cut</button><button type="button" aria-pressed="false" data-location="rough">Rough</button>
             <button type="button" aria-pressed="false" data-location="deep-rough">Deep rough</button><button type="button" aria-pressed="false" data-location="fairway-bunker">Fairway bunker</button><button type="button" aria-pressed="false" data-location="greenside-bunker">Greenside bunker</button>
             <button type="button" aria-pressed="false" data-location="fringe">Fringe</button><button type="button" aria-pressed="false" data-location="recovery">Trees / recovery</button><button type="button" aria-pressed="false" data-location="penalty-area">Penalty area + relief</button>
-            <button type="button" aria-pressed="false" data-location="out-of-bounds">OB / lost · replay</button><button type="button" aria-pressed="false" data-location="unplayable">Unplayable + relief</button><button type="button" aria-pressed="false" data-location="green">Green</button>
+            <button type="button" aria-pressed="false" data-location="out-of-bounds">OB / lost · replay</button><button type="button" aria-pressed="false" data-location="unplayable">Unplayable + relief</button><button type="button" aria-pressed="false" data-location="green" class="featured-result-button">Green</button>
             <button type="button" aria-pressed="false" data-location="holed" class="holed-button">Holed out</button>
           </div>
         </fieldset>
 
         <div class="form-grid compact-grid">
           <label id="end-distance-label"><span><span id="end-distance-title">Remaining distance</span> (<span id="end-unit">yd</span>)</span><input id="end-distance" type="number" inputmode="decimal" min="0" step="1" value="150" required></label>
+          <label id="shot-distance-label"><span>Shot distance (<span id="shot-unit">yd</span>)</span><input id="shot-distance" type="number" inputmode="decimal" min="0" step="0.1" value="250"></label>
           <label id="relief-lie-label" class="hidden">Relief lie<select id="relief-lie"><option value="rough" selected>Rough</option><option value="fairway">Fairway</option><option value="sand">Sand</option><option value="recovery">Recovery</option><option value="tee">Tee</option></select></label>
         </div>
         <div id="distance-presets" class="distance-presets" aria-label="Quick distance choices"></div>
