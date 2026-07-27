@@ -22,6 +22,35 @@
         <div><p class="eyebrow">Your golf</p><h2>My rounds</h2><p>Continue an unfinished round or review a completed scorecard.</p></div>
         <button id="home-new-round-button" class="primary-button" type="button">Start a new round</button>
       </div>
+      <section class="panel aggregate-panel" aria-labelledby="aggregate-heading">
+        <div class="aggregate-heading">
+          <div>
+            <p class="eyebrow">Recent form</p>
+            <h2 id="aggregate-heading">My performance</h2>
+            <p id="aggregate-range-detail" class="helper-text">Completed personal rounds</p>
+          </div>
+          <div class="segmented-control aggregate-range" aria-label="Aggregate recent rounds">
+            <button type="button" class="selected" aria-pressed="true" data-round-limit="5">5</button>
+            <button type="button" aria-pressed="false" data-round-limit="10">10</button>
+            <button type="button" aria-pressed="false" data-round-limit="20">20</button>
+            <button type="button" aria-pressed="false" data-round-limit="40">40</button>
+          </div>
+        </div>
+        <p id="aggregate-empty" class="empty-state">Complete a personal round to see your recent form.</p>
+        <div id="aggregate-content" class="hidden">
+          <div class="aggregate-overview" aria-label="Aggregate round overview">
+            <article class="aggregate-primary"><span>Average SG / round</span><strong id="aggregate-average-sg">—</strong></article>
+            <article><span>Fairways</span><strong id="aggregate-fairways">—</strong></article>
+            <article><span>Greens in regulation</span><strong id="aggregate-gir">—</strong></article>
+            <article><span>Scrambling</span><strong id="aggregate-scrambling">—</strong></article>
+          </div>
+          <div class="analytics-chart aggregate-chart">
+            <div class="chart-heading"><h3>Average SG per round</h3><span>By shot type</span></div>
+            <div id="aggregate-category-chart" class="diverging-chart"></div>
+          </div>
+          <p id="aggregate-footnote" class="helper-text"></p>
+        </div>
+      </section>
       <div id="round-list" class="round-list" aria-live="polite"></div>
       <div id="round-empty" class="panel empty-rounds hidden">
         <h3>No rounds yet</h3>
@@ -111,68 +140,6 @@
       </div>
     </section>
 
-    <section class="summary-grid workspace-section hidden" aria-label="Round summary">
-      <article class="metric-card primary-metric"><span>Total SG</span><strong id="total-sg">0.00</strong></article>
-      <article class="metric-card"><span>Off the tee</span><strong id="sg-off-tee">0.00</strong></article>
-      <article class="metric-card"><span>Approach</span><strong id="sg-approach">0.00</strong></article>
-      <article class="metric-card"><span>Around green</span><strong id="sg-short-game">0.00</strong></article>
-      <article class="metric-card"><span>Putting</span><strong id="sg-putting">0.00</strong></article>
-    </section>
-
-    <section class="panel analytics-panel workspace-section hidden" aria-labelledby="analytics-heading">
-      <div class="section-heading analytics-heading">
-        <div>
-          <p class="eyebrow">Round performance</p>
-          <h2 id="analytics-heading">Analytics</h2>
-        </div>
-        <a class="methodology-link" href="methodology.html">How SG is calculated</a>
-      </div>
-      <div class="overview-grid" aria-label="Round overview">
-        <article><span>Score to par</span><strong id="score-to-par">—</strong><small id="holes-completed">0 holes complete</small></article>
-        <article><span>Fairways</span><strong id="fairway-rate">—</strong><small>Par 4 and 5 tee shots</small></article>
-        <article><span>Greens in regulation</span><strong id="gir-rate">—</strong><small id="gir-detail">0 of 0 holes</small></article>
-        <article><span>Scrambling</span><strong id="scrambling-rate">—</strong><small id="scrambling-detail">No attempts</small></article>
-        <article><span>Putts</span><strong id="putts-total">0</strong><small id="putts-per-hole">— per completed hole</small></article>
-        <article><span>Penalty strokes</span><strong id="penalty-strokes">0</strong><small>Included in SG and score</small></article>
-      </div>
-
-      <div class="analytics-charts">
-        <article class="analytics-chart">
-          <div class="chart-heading"><h3>SG by shot type</h3><span>Total for this round</span></div>
-          <div id="category-sg-chart" class="diverging-chart"></div>
-        </article>
-        <article class="analytics-chart">
-          <div class="chart-heading"><h3>SG by starting distance</h3><span>Off-green shots · distance to hole</span></div>
-          <div id="distance-sg-chart" class="diverging-chart"></div>
-        </article>
-      </div>
-
-      <div class="shot-highlights">
-        <article>
-          <span>Best stroke</span>
-          <strong id="best-shot-title">Add a stroke to begin</strong>
-          <small id="best-shot-detail">—</small>
-        </article>
-        <article>
-          <span>Biggest opportunity</span>
-          <strong id="worst-shot-title">Add a stroke to begin</strong>
-          <small id="worst-shot-detail">—</small>
-        </article>
-      </div>
-
-      <div class="dispersion-section">
-        <div class="chart-heading">
-          <div><h3>Shot pattern</h3><span>Finish relative to the intended target</span></div>
-          <div class="segmented-control" aria-label="Filter shot pattern">
-            <button type="button" class="selected" aria-pressed="true" data-miss-filter="drive">Drives</button>
-            <button type="button" aria-pressed="false" data-miss-filter="approach">Approaches</button>
-            <button type="button" aria-pressed="false" data-miss-filter="chip">Short game</button>
-          </div>
-        </div>
-        <div id="miss-summary" class="miss-summary" aria-live="polite"></div>
-      </div>
-    </section>
-
     <section class="panel workspace-section hidden" id="shot-entry-panel">
       <div class="shot-context">
         <div><p class="eyebrow" id="form-mode-label">Next stroke</p><h2 id="shot-title">Drive</h2></div>
@@ -247,9 +214,71 @@
       </div>
     </section>
 
-    <section class="panel workspace-section hidden">
+    <section class="panel workspace-section hidden" id="hole-shot-panel">
       <div class="section-heading"><div><p class="eyebrow">Current hole</p><h2 id="hole-log-title">Hole 1 strokes</h2></div><button id="undo-button" class="text-button" type="button">Undo last</button></div>
       <div id="hole-shot-list" class="shot-card-list"></div>
+    </section>
+
+    <section class="summary-grid workspace-section hidden" aria-label="Round summary">
+      <article class="metric-card primary-metric"><span>Total SG</span><strong id="total-sg">0.00</strong></article>
+      <article class="metric-card"><span>Off the tee</span><strong id="sg-off-tee">0.00</strong></article>
+      <article class="metric-card"><span>Approach</span><strong id="sg-approach">0.00</strong></article>
+      <article class="metric-card"><span>Around green</span><strong id="sg-short-game">0.00</strong></article>
+      <article class="metric-card"><span>Putting</span><strong id="sg-putting">0.00</strong></article>
+    </section>
+
+    <section class="panel analytics-panel workspace-section hidden" aria-labelledby="analytics-heading">
+      <div class="section-heading analytics-heading">
+        <div>
+          <p class="eyebrow">Round performance</p>
+          <h2 id="analytics-heading">Analytics</h2>
+        </div>
+        <a class="methodology-link" href="methodology.html">How SG is calculated</a>
+      </div>
+      <div class="overview-grid" aria-label="Round overview">
+        <article><span>Score to par</span><strong id="score-to-par">—</strong><small id="holes-completed">0 holes complete</small></article>
+        <article><span>Fairways</span><strong id="fairway-rate">—</strong><small>Par 4 and 5 tee shots</small></article>
+        <article><span>Greens in regulation</span><strong id="gir-rate">—</strong><small id="gir-detail">0 of 0 holes</small></article>
+        <article><span>Scrambling</span><strong id="scrambling-rate">—</strong><small id="scrambling-detail">No attempts</small></article>
+        <article><span>Putts</span><strong id="putts-total">0</strong><small id="putts-per-hole">— per completed hole</small></article>
+        <article><span>Penalty strokes</span><strong id="penalty-strokes">0</strong><small>Included in SG and score</small></article>
+      </div>
+
+      <div class="analytics-charts">
+        <article class="analytics-chart">
+          <div class="chart-heading"><h3>SG by shot type</h3><span>Total for this round</span></div>
+          <div id="category-sg-chart" class="diverging-chart"></div>
+        </article>
+        <article class="analytics-chart">
+          <div class="chart-heading"><h3>SG by starting distance</h3><span>Off-green shots · distance to hole</span></div>
+          <div id="distance-sg-chart" class="diverging-chart"></div>
+        </article>
+      </div>
+
+      <div class="shot-highlights">
+        <article>
+          <span>Best stroke</span>
+          <strong id="best-shot-title">Add a stroke to begin</strong>
+          <small id="best-shot-detail">—</small>
+        </article>
+        <article>
+          <span>Biggest opportunity</span>
+          <strong id="worst-shot-title">Add a stroke to begin</strong>
+          <small id="worst-shot-detail">—</small>
+        </article>
+      </div>
+
+      <div class="dispersion-section">
+        <div class="chart-heading">
+          <div><h3>Shot pattern</h3><span>Finish relative to the intended target</span></div>
+          <div class="segmented-control" aria-label="Filter shot pattern">
+            <button type="button" class="selected" aria-pressed="true" data-miss-filter="drive">Drives</button>
+            <button type="button" aria-pressed="false" data-miss-filter="approach">Approaches</button>
+            <button type="button" aria-pressed="false" data-miss-filter="chip">Short game</button>
+          </div>
+        </div>
+        <div id="miss-summary" class="miss-summary" aria-live="polite"></div>
+      </div>
     </section>
 
   </main>

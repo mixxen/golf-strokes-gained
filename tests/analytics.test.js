@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  aggregateRoundsAnalytics,
   categoryBreakdown,
   distanceBreakdown,
   missZoneBreakdown,
@@ -174,4 +175,77 @@ test('calculates scrambling and penalties on a missed green',()=>{
   assert.equal(result.scramblingRate,1);
   assert.equal(result.scramblingAttempts,1);
   assert.equal(result.penalties,1);
+});
+
+test('aggregates recent rounds with weighted rates and per-round category SG',()=>{
+  const secondRoundShots=[
+    shot({
+      id:'drive-aggregate',
+      shotNumber:1,
+      type:'drive',
+      startLie:'tee',
+      startDistance:400,
+      finishLocation:'rough',
+      finishLie:'rough',
+      sg:-0.4,
+      penaltyStrokes:1
+    }),
+    shot({
+      id:'approach-aggregate',
+      shotNumber:2,
+      type:'approach',
+      startLie:'rough',
+      startDistance:150,
+      finishLocation:'rough',
+      finishLie:'rough',
+      sg:-0.2
+    }),
+    shot({
+      id:'chip-aggregate',
+      shotNumber:3,
+      type:'chip',
+      startLie:'rough',
+      startDistance:15,
+      finishLocation:'green',
+      finishLie:'green',
+      sg:0.1
+    }),
+    shot({
+      id:'putt-aggregate',
+      shotNumber:4,
+      type:'putt',
+      startLie:'green',
+      startDistance:5,
+      finishLocation:'holed',
+      finishLie:'holed',
+      sg:-0.3
+    })
+  ];
+  const result=aggregateRoundsAnalytics([
+    {shots,holes:[{number:1,par:4,teeDistance:400}],holeCount:1},
+    {shots:secondRoundShots,holes:[{number:1,par:5,teeDistance:500}],holeCount:1}
+  ],5);
+
+  assert.equal(result.roundCount,2);
+  assert.equal(result.holesCompleted,2);
+  assert.ok(Math.abs(result.totalSg-(-0.15))<1e-10);
+  assert.ok(Math.abs(result.averageSg-(-0.075))<1e-10);
+  assert.equal(result.fairwayRate,0.5);
+  assert.equal(result.girRate,0.5);
+  assert.equal(result.scramblingRate,1);
+  assert.equal(result.puttsPerHole,1);
+  assert.equal(result.penalties,1);
+  assert.equal(result.categories.find((item)=>item.key==='drive').count,2);
+  assert.ok(Math.abs(result.categories.find((item)=>item.key==='drive').sg-(-0.075))<1e-10);
+});
+
+test('limits the aggregate to the requested number of recent rounds',()=>{
+  const rounds=Array.from({length:10},(_,index)=>({
+    shots:[{...shots[0],calculation:{...shots[0].calculation,strokesGained:index+1}}],
+    holes:[{number:1,par:4,teeDistance:400}],
+    holeCount:1
+  }));
+  const result=aggregateRoundsAnalytics(rounds,5);
+  assert.equal(result.roundCount,5);
+  assert.equal(result.totalSg,15);
 });
