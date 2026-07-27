@@ -202,6 +202,7 @@ export function buildPgaFixture({
   playerName,
   eventName,
   courseName,
+  startDate,
   fetchedAt,
   roundPayloads
 }) {
@@ -221,7 +222,8 @@ export function buildPgaFixture({
     tournament:{
       id:tournamentId,
       name:eventName||'',
-      course:courseName||''
+      course:courseName||'',
+      startDate:startDate||''
     },
     rounds
   };
