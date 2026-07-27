@@ -469,6 +469,41 @@ legend { padding:0 .4rem; color:var(--brand); font-weight:800; }
   background:var(--brand);
   color:white;
 }
+.shot-leaderboard-panel { display:grid; gap:.85rem; }
+.leaderboard-heading {
+  align-items:flex-start;
+  margin-bottom:0;
+}
+.leaderboard-heading .helper-text { margin:.35rem 0 0; }
+.leaderboard-filters { max-width:520px; }
+.leaderboard-count { margin:0; }
+.round-shot-ranking { display:grid; }
+.ranked-shot {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:.75rem;
+  padding:.8rem 0;
+  border-top:1px solid var(--line);
+}
+.ranked-shot-position {
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:var(--brand-soft);
+  color:var(--brand);
+  font-size:.78rem;
+  font-weight:900;
+}
+.ranked-shot p {
+  margin:.2rem 0;
+  color:var(--muted);
+  font-size:.78rem;
+}
+.ranked-shot small { color:#7a857f; font-size:.7rem; }
+.ranked-shot>strong:last-child { font-size:.95rem; }
 
 .hole-selector { display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:.4rem; }
 .hole-button {
@@ -677,10 +712,14 @@ footer { width:min(980px,calc(100% - 2rem)); margin:0 auto 2rem; color:var(--mut
   .app-header { display:grid; }
   .aggregate-heading { display:grid; }
   .aggregate-range { justify-content:flex-start; }
+  .leaderboard-heading { display:grid; }
+  .leaderboard-filters { justify-content:flex-start; }
   .header-actions { width:100%; }
   .header-actions button { flex:1; }
   .analytics-heading,.chart-heading { display:grid; }
   .chart-heading span { text-align:left; }
   .segmented-control { justify-content:flex-start; }
   .overview-grid,.shot-highlights { grid-template-columns:1fr; }
+  .ranked-shot { grid-template-columns:auto minmax(0,1fr); }
+  .ranked-shot>strong:last-child { grid-column:2; }
 }

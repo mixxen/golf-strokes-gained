@@ -40,8 +40,9 @@ test('landing page aggregates recent completed personal rounds with quick ranges
   assert.match(html,/id="aggregate-category-chart"/);
   assert.deepEqual(
     [...html.matchAll(/data-round-limit="(\d+)"/g)].map((match)=>Number(match[1])),
-    [5,10,20,40]
+    [3,5,10,20,40]
   );
+  assert.match(html,/class="selected" aria-pressed="true" data-round-limit="3"/);
   assert.match(app,/aggregateRoundsAnalytics/);
   assert.match(app,/renderAggregateStats/);
   assert.match(app,/!item\.testData&&roundIsComplete\(item\)/);
@@ -59,6 +60,20 @@ test('round workspace puts hole selection and stroke entry before round analytic
   assert.ok(shotEntry<holeHistory);
   assert.ok(holeHistory<roundSummary);
   assert.ok(roundSummary<analytics);
+});
+
+test('round workspace ends with a filterable best-to-worst stroke leaderboard',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  const analytics=html.indexOf('id="analytics-heading"');
+  const leaderboard=html.indexOf('id="shot-leaderboard-heading"');
+  assert.ok(analytics>=0&&analytics<leaderboard);
+  assert.match(html,/id="round-shot-ranking"/);
+  assert.deepEqual(
+    [...html.matchAll(/data-shot-filter="([^"]+)"/g)].map((match)=>match[1]),
+    ['all','drive','approach','chip','putt','bunker','penalty']
+  );
+  assert.match(app,/rankedShots/);
+  assert.match(app,/renderShotLeaderboard/);
 });
 
 test('shot cards show the calculated shot distance',async()=>{

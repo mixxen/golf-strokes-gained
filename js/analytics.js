@@ -81,6 +81,27 @@ export function missZoneBreakdown(shots=[],type='drive') {
   });
 }
 
+export function rankedShots(shots=[],filter='all') {
+  const filtered=shots.filter((shot)=>{
+    if(!Number.isFinite(Number(shot?.calculation?.strokesGained))) return false;
+    if(filter==='all') return true;
+    if(filter==='bunker'){
+      return shot?.start?.lie==='sand'
+        || shot?.finish?.benchmarkLie==='sand'
+        || String(shot?.finish?.location||'').includes('bunker');
+    }
+    if(filter==='penalty'){
+      return number(shot?.calculation?.penaltyStrokes??shot?.penalty?.strokes)>0;
+    }
+    return shot?.type===filter;
+  });
+  return filtered.sort((left,right)=>
+    number(right.calculation.strokesGained)-number(left.calculation.strokesGained)
+    || number(left.hole)-number(right.hole)
+    || number(left.shotNumber)-number(right.shotNumber)
+  );
+}
+
 function holeReachedGreenInRegulation(shots,hole) {
   let strokesUsed=0;
   const target=Number(hole?.par)-2;
@@ -170,8 +191,8 @@ export function roundAnalytics(shots=[],holes=[]) {
   };
 }
 
-export function aggregateRoundsAnalytics(rounds=[],limit=5) {
-  const selected=rounds.slice(0,Math.max(1,Number(limit)||5));
+export function aggregateRoundsAnalytics(rounds=[],limit=3) {
+  const selected=rounds.slice(0,Math.max(1,Number(limit)||3));
   const summaries=selected.map((item)=>roundAnalytics(
     Array.isArray(item.shots)?item.shots:[],
     Array.isArray(item.holes)?item.holes.slice(0,Number(item.holeCount)||item.holes.length):[]
@@ -204,7 +225,7 @@ export function aggregateRoundsAnalytics(rounds=[],limit=5) {
   });
 
   return {
-    requestedLimit:Number(limit)||5,
+    requestedLimit:Number(limit)||3,
     roundCount,
     totalSg,
     averageSg:roundCount?totalSg/roundCount:null,

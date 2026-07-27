@@ -30,7 +30,8 @@
             <p id="aggregate-range-detail" class="helper-text">Completed personal rounds</p>
           </div>
           <div class="segmented-control aggregate-range" aria-label="Aggregate recent rounds">
-            <button type="button" class="selected" aria-pressed="true" data-round-limit="5">5</button>
+            <button type="button" class="selected" aria-pressed="true" data-round-limit="3">3</button>
+            <button type="button" aria-pressed="false" data-round-limit="5">5</button>
             <button type="button" aria-pressed="false" data-round-limit="10">10</button>
             <button type="button" aria-pressed="false" data-round-limit="20">20</button>
             <button type="button" aria-pressed="false" data-round-limit="40">40</button>
@@ -279,6 +280,27 @@
         </div>
         <div id="miss-summary" class="miss-summary" aria-live="polite"></div>
       </div>
+    </section>
+
+    <section class="panel shot-leaderboard-panel workspace-section hidden" aria-labelledby="shot-leaderboard-heading">
+      <div class="section-heading leaderboard-heading">
+        <div>
+          <p class="eyebrow">Stroke leaderboard</p>
+          <h2 id="shot-leaderboard-heading">All round strokes</h2>
+          <p class="helper-text">Sorted from most strokes gained to most lost.</p>
+        </div>
+        <div class="segmented-control leaderboard-filters" aria-label="Filter round strokes">
+          <button type="button" class="selected" aria-pressed="true" data-shot-filter="all">All</button>
+          <button type="button" aria-pressed="false" data-shot-filter="drive">Drives</button>
+          <button type="button" aria-pressed="false" data-shot-filter="approach">Approaches</button>
+          <button type="button" aria-pressed="false" data-shot-filter="chip">Around green</button>
+          <button type="button" aria-pressed="false" data-shot-filter="putt">Putting</button>
+          <button type="button" aria-pressed="false" data-shot-filter="bunker">Bunkers</button>
+          <button type="button" aria-pressed="false" data-shot-filter="penalty">Penalties</button>
+        </div>
+      </div>
+      <p id="round-shot-count" class="leaderboard-count helper-text" aria-live="polite"></p>
+      <div id="round-shot-ranking" class="round-shot-ranking"></div>
     </section>
 
   </main>

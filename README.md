@@ -5,7 +5,7 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 ## Current capabilities
 
 - A round-history landing page, ordered newest first, with date, progress, score, and strokes gained
-- Recent-form summaries across the latest 5, 10, 20, or 40 completed personal rounds
+- Recent-form summaries across the latest 3, 5, 10, 20, or 40 completed personal rounds
 - Multiple locally saved rounds with refresh-safe URLs and automatic migration from the original single-round storage
 - A focused new-round setup flow, separate from the scorecard and shot-entry workspace
 - Read-only review for completed rounds with an explicit option to resume editing
@@ -20,6 +20,7 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 - A workflow-first round screen with hole selection, stroke entry, and hole history above all statistics
 - Round analytics for SG by category and starting-distance bucket
 - GIR, scrambling, putting, fairway, penalty, best/worst-stroke, and dispersion insights
+- A best-to-worst leaderboard for every stroke with category, bunker, and penalty filters
 - A dedicated, user-facing strokes-gained methodology page
 - Local browser persistence with schema migration and recalculation
 - GitHub Pages deployment and automated calculation tests
