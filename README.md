@@ -125,6 +125,21 @@ hole SG = J(tee distance) − actual hole score
 
 Actual score includes physical strokes and penalty strokes. The app checks this identity and also uses source-based golden tests to verify the published benchmark values.
 
+## Shot-category limitation
+
+PGA TOUR defines an around-the-green shot as one played from off the putting
+surface and within 30 yards of the **edge of the green**. The app currently
+infers short game using the available distance to the **flag** instead, because
+it does not yet record the nearest green-edge distance or green geometry.
+
+Since the flag is inside the green, the current rule is conservative: a shot
+within 30 yards of the flag is also within 30 yards of the near edge, but a shot
+more than 30 yards from the flag may still be within 30 yards of the green edge.
+Those shots can currently be reported as approach rather than around-the-green.
+This affects category subtotals only; it does not change the per-shot SG value
+or total SG. A future version should capture the nearest green-edge distance,
+use authoritative course geometry, or allow an explicit category override.
+
 ## Run locally
 
 No build step is required.

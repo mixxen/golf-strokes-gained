@@ -128,4 +128,32 @@ The actual score includes physical strokes and penalty strokes. The app checks t
 
 The app currently records drive, approach, chip/short-game, and putt shot types. These categories are for aggregation only; the SG value itself always comes from the before-and-after states.
 
-The official PGA TOUR categories and event-adjusted statistics may apply additional definitions and course/round adjustments. This application currently reports **unadjusted strokes gained versus the Broadie historical PGA TOUR benchmark**.
+PGA TOUR documents “around the green” as within 30 yards of the
+**edge of the green**. See the
+[PGA TOUR stat definition](https://www.pgatour.com/korn-ferry-tour/stats/detail/331).
+The application currently uses distance to the **flag** for automatic
+short-game inference because its round data does not include distance to the
+nearest green edge or green geometry.
+
+The flag lies inside the green, so the current `30 yards to the flag` test is a
+conservative subset of the PGA TOUR definition:
+
+- A shot within 30 yards of the flag is necessarily within 30 yards of the near
+  edge along the line to the flag.
+- A shot more than 30 yards from the flag may nevertheless be within 30 yards
+  of another or nearer part of the green edge.
+
+The second case can cause an official around-the-green shot to be reported as
+an approach. It does not alter the shot's expected-strokes calculation, the
+shot's SG value, or total SG; it only reallocates SG between the approach and
+around-the-green subtotals.
+
+This is a known future correction. A complete implementation should capture
+distance to the nearest green edge, derive it from authoritative green
+geometry, or let the user explicitly override the inferred category. Merely
+increasing the flag-distance threshold would be an undocumented approximation.
+
+The official PGA TOUR event-adjusted statistics also apply course/round and
+field adjustments that are not available to this application. It currently
+reports **unadjusted strokes gained versus the Broadie historical PGA TOUR
+benchmark**.
