@@ -8,6 +8,7 @@ A mobile-friendly static web app for recording a round stroke by stroke and calc
 - Recent-form summaries across the latest 3, 5, 10, 20, or 40 completed personal rounds
 - Clearly labeled PGA test-round analytics when no completed personal rounds exist
 - One-click JSON backup of every round stored in the browser
+- Playing dates preserved through PGA import, local saves, refreshes, and JSON backup
 - Multiple locally saved rounds with refresh-safe URLs and automatic migration from the original single-round storage
 - A focused new-round setup flow, separate from the scorecard and shot-entry workspace
 - Read-only review for completed rounds with an explicit option to resume editing

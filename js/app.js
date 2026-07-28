@@ -284,7 +284,7 @@ function migrateRound(data){
   base.courseName=data.courseName||'';
   base.courseData=data.courseData||null;
   base.testData=data.testData||null;
-  base.date=data.date||base.date;
+  base.date=base.testData?.playedDate||data.date||base.date;
   base.holeCount=Math.min(18,Math.max(1,Number(data.holeCount||data.courseData?.holeCount)||18));
   base.currentHole=Math.min(base.holeCount,Math.max(1,Number(data.currentHole)||1));
   base.recentClubs={...base.recentClubs,...data.recentClubs};
@@ -326,7 +326,11 @@ function roundIsComplete(targetRound=round){
 
 function persist(message='Saved locally'){
   if(!round?.id||activeView==='home') return;
-  round.date=elements.workspaceDate?.value||elements.date.value||round.date;
+  if(!round.testData){
+    round.date=elements.workspaceDate?.value||elements.date.value||round.date;
+  } else if(round.testData.playedDate){
+    round.date=round.testData.playedDate;
+  }
   round.status=roundIsComplete()?'complete':'in-progress';
   round=roundStore.save(round);
   elements.saveStatus.textContent=message;
@@ -482,7 +486,7 @@ function applyWorkspaceMode(){
   elements.par.disabled=roundReadOnly;
   elements.holeDistance.disabled=roundReadOnly;
   $('#undo-button').classList.toggle('hidden',roundReadOnly);
-  elements.workspaceDate.disabled=roundReadOnly;
+  elements.workspaceDate.disabled=roundReadOnly||Boolean(round.testData);
 }
 
 function renderWorkspaceHeading(){
@@ -1608,6 +1612,7 @@ elements.date.addEventListener('change',()=>{
 });
 elements.date.addEventListener('input',()=>{ elements.saveStatus.textContent='Unsaved changes'; });
 elements.workspaceDate.addEventListener('change',()=>{
+  if(round.testData) return;
   round.date=elements.workspaceDate.value;
   elements.date.value=round.date;
   persist();

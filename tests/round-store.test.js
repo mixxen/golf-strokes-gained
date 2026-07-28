@@ -34,6 +34,15 @@ test('lists rounds from newest playing date to oldest', () => {
   assert.deepEqual(store.list().map((round) => round.id), ['newer-b', 'newer-a', 'older']);
 });
 
+test('preserves the playing date when updating a stored round without one', () => {
+  const store = createRoundStore(memoryStorage(), { now: () => '2026-07-28T12:00:00.000Z' });
+  store.save({ id: 'dated-round', date: '2025-03-13', courseName: 'TPC Sawgrass' });
+  store.save({ id: 'dated-round', courseName: 'Updated TPC Sawgrass' });
+
+  assert.equal(store.get('dated-round').date, '2025-03-13');
+  assert.equal(store.get('dated-round').courseName, 'Updated TPC Sawgrass');
+});
+
 test('migrates one legacy round only once', () => {
   const storage = memoryStorage({
     legacy: JSON.stringify({ courseName: 'Legacy course', date: '2026-07-21' })
