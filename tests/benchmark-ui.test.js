@@ -147,6 +147,8 @@ test('landing page imports a private PGA fixture without uploading it',async()=>
   assert.match(app,/importPgaFixture/);
   assert.match(app,/file\.text\(\)/);
   assert.match(app,/PGA test data/);
+  assert.match(app,/base\.testData\?\.playedDate\|\|data\.date/);
+  assert.match(app,/roundReadOnly\|\|Boolean\(round\.testData\)/);
 });
 
 test('course import does not claim a tee loaded when only pars are available',async()=>{

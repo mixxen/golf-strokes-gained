@@ -173,6 +173,9 @@ test('converts PGA rounds into complete app rounds',()=>{
   assert.equal(rounds[0].id,'pga-R2025011-28237-r1');
   assert.equal(rounds[0].date,'2025-03-13');
   assert.equal(rounds[1].date,'2025-03-14');
+  assert.equal(rounds[0].testData.playedDate,'2025-03-13');
+  assert.equal(rounds[1].testData.playedDate,'2025-03-14');
+  assert.equal(rounds[0].testData.tournamentStartDate,'2025-03-13');
   assert.equal(rounds[0].courseName,'TPC Sawgrass');
   assert.equal(rounds[0].testData.playerName,'Rory McIlroy');
   assert.equal(rounds[0].holes[0].teeDistance,417);
@@ -212,4 +215,15 @@ test('imports idempotently and replaces the same round identities',()=>{
   assert.deepEqual({added:first.added,updated:first.updated},{added:2,updated:0});
   assert.deepEqual({added:second.added,updated:second.updated},{added:0,updated:2});
   assert.equal(store.list().length,2);
+  assert.equal(store.get('pga-R2025011-28237-r1').date,'2025-03-13');
+  assert.equal(store.get('pga-R2025011-28237-r2').date,'2025-03-14');
+  assert.equal(store.get('pga-R2025011-28237-r1').testData.playedDate,'2025-03-13');
+});
+
+test('uses a source round date when the fixture provides one',()=>{
+  const source=fixture();
+  source.rounds[0].date='2025-03-15';
+  const round=convertPgaFixtureToRounds(source)[0];
+  assert.equal(round.date,'2025-03-15');
+  assert.equal(round.testData.playedDate,'2025-03-15');
 });

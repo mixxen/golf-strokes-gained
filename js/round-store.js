@@ -40,8 +40,10 @@ export function createRoundStore(storage, options = {}) {
 
     const rounds = readCollection();
     const index = rounds.findIndex((item) => item.id === round.id);
+    const prior = index >= 0 ? rounds[index] : null;
     const saved = clone({
       ...round,
+      date: round.date || prior?.date || '',
       createdAt: round.createdAt || now(),
       updatedAt: now()
     });

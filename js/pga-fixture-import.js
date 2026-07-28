@@ -181,6 +181,7 @@ export function convertPgaFixtureToRounds(fixture,{ now=()=>new Date().toISOStri
   const startDate=fixture.tournament.startDate||String(fixture.source?.fetchedAt||createdAt).slice(0,10);
 
   return fixture.rounds.map((sourceRound)=>{
+    const playedDate=sourceRound.date||roundDate(startDate,sourceRound.roundNumber);
     const sourceHoles=Array.isArray(sourceRound.holes)?sourceRound.holes:[];
     if(!sourceHoles.length) throw new Error(`PGA round ${sourceRound.roundNumber} has no holes.`);
     const holeCount=Math.max(...sourceHoles.map((hole)=>Number(hole.number)||0));
@@ -220,10 +221,12 @@ export function convertPgaFixtureToRounds(fixture,{ now=()=>new Date().toISOStri
         playerName:fixture.player.name||'PGA player',
         tournamentId:fixture.tournament.id,
         tournamentName:fixture.tournament.name||'PGA tournament',
+        tournamentStartDate:startDate,
         roundNumber:Number(sourceRound.roundNumber),
+        playedDate,
         sourceScore
       },
-      date:roundDate(startDate,sourceRound.roundNumber),
+      date:playedDate,
       holeCount,
       currentHole:1,
       holes,
