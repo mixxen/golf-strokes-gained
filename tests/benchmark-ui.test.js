@@ -45,7 +45,18 @@ test('landing page aggregates recent completed personal rounds with quick ranges
   assert.match(html,/class="selected" aria-pressed="true" data-round-limit="3"/);
   assert.match(app,/aggregateRoundsAnalytics/);
   assert.match(app,/renderAggregateStats/);
-  assert.match(app,/!item\.testData&&roundIsComplete\(item\)/);
+  assert.match(app,/selectAggregateRounds/);
+  assert.match(app,/Sample view from imported PGA test data/);
+});
+
+test('landing page can export every locally stored round as JSON',async()=>{
+  const [html,app]=await Promise.all([read('index.html'),read('js/app.js')]);
+  assert.match(html,/id="export-rounds-button"/);
+  assert.match(html,/Export all \(\.json\)/);
+  assert.match(app,/createRoundsExport/);
+  assert.match(app,/roundsExportFilename/);
+  assert.match(app,/URL\.createObjectURL/);
+  assert.match(app,/download=roundsExportFilename/);
 });
 
 test('round workspace puts hole selection and stroke entry before round analytics',async()=>{

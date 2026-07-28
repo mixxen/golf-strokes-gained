@@ -6,7 +6,8 @@ import {
   distanceBreakdown,
   missZoneBreakdown,
   rankedShots,
-  roundAnalytics
+  roundAnalytics,
+  selectAggregateRounds
 } from '../js/analytics.js';
 
 function shot({
@@ -292,4 +293,29 @@ test('defaults the recent-form aggregate to three rounds',()=>{
     holeCount:1
   }));
   assert.equal(aggregateRoundsAnalytics(rounds).roundCount,3);
+});
+
+test('uses completed PGA test rounds only when no personal rounds are complete',()=>{
+  const complete=(item)=>item.status==='complete';
+  const testRounds=[
+    {id:'test-1',status:'complete',testData:{playerName:'Sample'}},
+    {id:'test-2',status:'complete',testData:{playerName:'Sample'}}
+  ];
+  assert.deepEqual(
+    selectAggregateRounds(testRounds,complete),
+    {rounds:testRounds,source:'test'}
+  );
+
+  const personal={id:'personal',status:'complete',testData:null};
+  const selection=selectAggregateRounds([personal,...testRounds],complete);
+  assert.equal(selection.source,'personal');
+  assert.deepEqual(selection.rounds,[personal]);
+});
+
+test('does not aggregate incomplete personal or test rounds',()=>{
+  const selection=selectAggregateRounds([
+    {id:'personal',status:'in-progress',testData:null},
+    {id:'test',status:'in-progress',testData:{playerName:'Sample'}}
+  ],(item)=>item.status==='complete');
+  assert.deepEqual(selection,{rounds:[],source:'empty'});
 });

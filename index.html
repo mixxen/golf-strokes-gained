@@ -20,7 +20,10 @@
     <section id="rounds-home" class="home-view">
       <div class="home-hero">
         <div><p class="eyebrow">Your golf</p><h2>My rounds</h2><p>Continue an unfinished round or review a completed scorecard.</p></div>
-        <button id="home-new-round-button" class="primary-button" type="button">Start a new round</button>
+        <div class="home-hero-actions">
+          <button id="export-rounds-button" class="secondary-button" type="button">Export all (.json)</button>
+          <button id="home-new-round-button" class="primary-button" type="button">Start a new round</button>
+        </div>
       </div>
       <section class="panel aggregate-panel" aria-labelledby="aggregate-heading">
         <div class="aggregate-heading">
@@ -37,7 +40,7 @@
             <button type="button" aria-pressed="false" data-round-limit="40">40</button>
           </div>
         </div>
-        <p id="aggregate-empty" class="empty-state">Complete a personal round to see your recent form.</p>
+        <p id="aggregate-empty" class="empty-state">Complete a round or import PGA test rounds to see recent form.</p>
         <div id="aggregate-content" class="hidden">
           <div class="aggregate-overview" aria-label="Aggregate round overview">
             <article class="aggregate-primary"><span>Average SG / round</span><strong id="aggregate-average-sg">—</strong></article>
