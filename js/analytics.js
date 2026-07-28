@@ -238,3 +238,11 @@ export function aggregateRoundsAnalytics(rounds=[],limit=3) {
     penalties
   };
 }
+
+export function selectAggregateRounds(rounds=[],isComplete=(item)=>item?.status==='complete') {
+  const completed=rounds.filter((item)=>isComplete(item));
+  const personal=completed.filter((item)=>!item.testData);
+  if(personal.length) return {rounds:personal,source:'personal'};
+  const test=completed.filter((item)=>item.testData);
+  return {rounds:test,source:test.length?'test':'empty'};
+}

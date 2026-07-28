@@ -63,6 +63,9 @@ main {
 .home-hero h2 { font-size:clamp(1.7rem,5vw,2.4rem); }
 .home-hero p:last-child { margin:.45rem 0 0; color:rgb(255 255 255 / 76%); }
 .home-hero .primary-button { width:auto; flex:0 0 auto; background:white; color:var(--brand); }
+.home-hero-actions { display:flex; align-items:center; gap:.55rem; flex:0 0 auto; }
+.home-hero-actions .secondary-button { padding:.95rem 1rem; }
+.home-hero-actions button:disabled { opacity:.5; cursor:not-allowed; }
 .aggregate-panel { display:grid; gap:1rem; }
 .aggregate-heading {
   display:flex;
@@ -692,7 +695,8 @@ footer { width:min(980px,calc(100% - 2rem)); margin:0 auto 2rem; color:var(--mut
   .course-tool-heading { display:block; }
   .course-tool-heading .text-button { padding-left:0; }
   .home-hero { display:grid; }
-  .home-hero .primary-button { width:100%; }
+  .home-hero-actions { display:grid; }
+  .home-hero .primary-button,.home-hero .secondary-button { width:100%; }
   .aggregate-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .round-card { grid-template-columns:1fr; }
   .round-card-metrics { justify-content:flex-start; padding-top:.7rem; border-top:1px solid var(--line); }

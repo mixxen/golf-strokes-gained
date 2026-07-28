@@ -8,12 +8,13 @@ import {
   scoreLabel,
   summarizeHole
 } from './calculations.js';
-import {aggregateRoundsAnalytics,missZoneBreakdown,rankedShots,roundAnalytics} from './analytics.js';
+import {aggregateRoundsAnalytics,missZoneBreakdown,rankedShots,roundAnalytics,selectAggregateRounds} from './analytics.js';
 import {createCourseCache} from './course-cache.js';
 import {createOpenGolfApiProvider,OPENGOLF_ATTRIBUTION} from './course-providers/opengolfapi.js';
 import {applyCourseTee,teeIsSelectable} from './course-round.js';
 import {remainingDistanceFromShot,shotDistanceFromRemaining} from './distance-input.js';
 import {importPgaFixture} from './pga-fixture-import.js';
+import {createRoundsExport,roundsExportFilename} from './round-export.js';
 import {createRoundStore} from './round-store.js';
 
 const LEGACY_ROUND_KEYS=[
@@ -92,6 +93,7 @@ let shotLeaderboardFilter='all';
 const $=(selector)=>document.querySelector(selector);
 const elements={
   home:$('#rounds-home'),
+  exportRoundsButton:$('#export-rounds-button'),
   roundList:$('#round-list'),
   roundEmpty:$('#round-empty'),
   aggregateEmpty:$('#aggregate-empty'),
@@ -346,14 +348,16 @@ function roundDisplayName(targetRound){
 }
 
 function renderAggregateStats(rounds=roundStore.list()){
-  const completedPersonalRounds=rounds.filter((item)=>!item.testData&&roundIsComplete(item));
-  const analytics=aggregateRoundsAnalytics(completedPersonalRounds,aggregateRoundLimit);
+  const selection=selectAggregateRounds(rounds,roundIsComplete);
+  const analytics=aggregateRoundsAnalytics(selection.rounds,aggregateRoundLimit);
   const hasRounds=analytics.roundCount>0;
   elements.aggregateEmpty.classList.toggle('hidden',hasRounds);
   elements.aggregateContent.classList.toggle('hidden',!hasRounds);
   elements.aggregateRangeDetail.textContent=hasRounds
-    ? `Last ${analytics.roundCount} completed personal round${analytics.roundCount===1?'':'s'}`
-    : 'Completed personal rounds';
+    ? selection.source==='test'
+      ? `Last ${analytics.roundCount} completed PGA test round${analytics.roundCount===1?'':'s'}`
+      : `Last ${analytics.roundCount} completed personal round${analytics.roundCount===1?'':'s'}`
+    : 'Completed rounds';
   if(!hasRounds) return;
 
   applySgMetric(elements.aggregateAverageSg,analytics.averageSg);
@@ -362,12 +366,35 @@ function renderAggregateStats(rounds=roundStore.list()){
   elements.aggregateScrambling.textContent=rate(analytics.scramblingRate);
   renderDivergingChart(elements.aggregateCategoryChart,analytics.categories);
   const putts=analytics.puttsPerHole===null?'—':analytics.puttsPerHole.toFixed(1);
-  elements.aggregateFootnote.textContent=
-    `${analytics.holesCompleted} completed holes · ${putts} putts per hole · ${analytics.penalties} penalty stroke${analytics.penalties===1?'':'s'}`;
+  elements.aggregateFootnote.textContent=[
+    selection.source==='test'?'Sample view from imported PGA test data.':null,
+    `${analytics.holesCompleted} completed holes · ${putts} putts per hole · ${analytics.penalties} penalty stroke${analytics.penalties===1?'':'s'}`
+  ].filter(Boolean).join(' ');
+}
+
+function exportAllRounds(){
+  const rounds=roundStore.list();
+  if(!rounds.length) return;
+  const exportedAt=new Date().toISOString();
+  const contents=JSON.stringify(createRoundsExport(rounds,exportedAt),null,2);
+  const url=URL.createObjectURL(new Blob([contents],{type:'application/json'}));
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=roundsExportFilename(exportedAt);
+  document.body.append(link);
+  link.click();
+  link.remove();
+  const defaultLabel='Export all (.json)';
+  elements.exportRoundsButton.textContent=`Exported ${rounds.length} round${rounds.length===1?'':'s'}`;
+  setTimeout(()=>{
+    URL.revokeObjectURL(url);
+    elements.exportRoundsButton.textContent=defaultLabel;
+  },10_000);
 }
 
 function renderRoundList(){
   const rounds=roundStore.list();
+  elements.exportRoundsButton.disabled=rounds.length===0;
   elements.roundEmpty.classList.toggle('hidden',rounds.length>0);
   elements.roundList.innerHTML=rounds.map((item)=>{
     const summaries=summariesFor(item);
@@ -1509,6 +1536,7 @@ elements.courseSearchForm.addEventListener('submit',(event)=>{
   searchCourses();
 });
 elements.importCourseButton.addEventListener('click',importSelectedCourse);
+elements.exportRoundsButton.addEventListener('click',exportAllRounds);
 elements.manualCourseButton.addEventListener('click',()=>{
   selectedCourse=null;
   selectedTeeKey=null;
