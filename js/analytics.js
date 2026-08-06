@@ -16,6 +16,15 @@ export const DISTANCE_BUCKETS=Object.freeze([
   {key:'226-plus',label:'226+ yd',min:225,max:Infinity}
 ]);
 
+export const PUTTING_DISTANCE_BUCKETS=Object.freeze([
+  {key:'0-3',label:'≤3 ft',min:0,max:3},
+  {key:'4-6',label:'4–6 ft',min:3,max:6},
+  {key:'7-10',label:'7–10 ft',min:6,max:10},
+  {key:'11-20',label:'11–20 ft',min:10,max:20},
+  {key:'21-40',label:'21–40 ft',min:20,max:40},
+  {key:'41-plus',label:'41+ ft',min:40,max:Infinity}
+]);
+
 export const MISS_ZONES=Object.freeze([
   'long-left','long','long-right',
   'left','target','right',
@@ -27,6 +36,13 @@ const sumSg=(shots)=>shots.reduce(
   (total,shot)=>total+number(shot?.calculation?.strokesGained),
   0
 );
+
+function puttingStartDistanceFeet(shot) {
+  if(shot?.type!=='putt'||shot?.start?.lie!=='green') return null;
+  const distance=Number(shot?.start?.distance);
+  if(!Number.isFinite(distance)||distance<=0) return null;
+  return shot?.start?.unit==='yards'?distance*3:distance;
+}
 
 export function categoryBreakdown(shots=[]) {
   return SHOT_CATEGORIES.map(({key,label})=>{
@@ -60,6 +76,26 @@ export function distanceBreakdown(shots=[]) {
       count:matching.length,
       sg,
       average:matching.length?sg/matching.length:null
+    };
+  });
+}
+
+export function puttingDistanceBreakdown(shots=[]) {
+  const eligible=shots
+    .map((shot)=>({shot,distance:puttingStartDistanceFeet(shot)}))
+    .filter((item)=>item.distance!==null);
+
+  return PUTTING_DISTANCE_BUCKETS.map((bucket)=>{
+    const matching=eligible.filter((item)=>
+      item.distance>bucket.min&&item.distance<=bucket.max
+    );
+    const matchingShots=matching.map((item)=>item.shot);
+    const sg=sumSg(matchingShots);
+    return {
+      ...bucket,
+      count:matchingShots.length,
+      sg,
+      average:matchingShots.length?sg/matchingShots.length:null
     };
   });
 }
@@ -174,6 +210,7 @@ export function roundAnalytics(shots=[],holes=[]) {
     toPar:completed.length?score-par:null,
     categories:categoryBreakdown(shots),
     distances:distanceBreakdown(shots),
+    puttingDistances:puttingDistanceBreakdown(shots),
     fairwayRate:driving.fairwayRate,
     fairwayCount:driving.fairwayRate===null?0:driving.fairwayRate*driving.count,
     driveCount:driving.count,
@@ -224,6 +261,23 @@ export function aggregateRoundsAnalytics(rounds=[],limit=3) {
     };
   });
 
+  const puttingDistances=PUTTING_DISTANCE_BUCKETS.map((bucket)=>{
+    const values=summaries.map((item)=>
+      item.puttingDistances.find((distance)=>distance.key===bucket.key)
+    );
+    const bucketTotal=values.reduce((total,item)=>total+number(item?.sg),0);
+    const count=values.reduce((total,item)=>total+number(item?.count),0);
+    return {
+      ...bucket,
+      count,
+      totalSg:bucketTotal,
+      sg:roundCount?bucketTotal/roundCount:0,
+      average:count?bucketTotal/count:null
+    };
+  });
+
+  const puttingCategory=categories.find((item)=>item.key==='putt');
+
   return {
     requestedLimit:Number(limit)||3,
     roundCount,
@@ -231,6 +285,10 @@ export function aggregateRoundsAnalytics(rounds=[],limit=3) {
     averageSg:roundCount?totalSg/roundCount:null,
     holesCompleted,
     categories,
+    puttingDistances,
+    puttingSgTotal:number(puttingCategory?.totalSg),
+    puttingSgPerRound:roundCount?number(puttingCategory?.totalSg)/roundCount:null,
+    puttingCount:completedPutts,
     fairwayRate:driveCount?fairwayCount/driveCount:null,
     girRate:holesCompleted?girCount/holesCompleted:null,
     scramblingRate:scramblingAttempts?scramblingCount/scramblingAttempts:null,

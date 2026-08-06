@@ -19,3 +19,35 @@
   outline:3px solid rgb(178 58 48 / 18%);
   outline-offset:2px;
 }
+
+.putting-distance-chart {
+  grid-column:1 / -1;
+}
+
+.aggregate-putting-chart {
+  margin-top:1rem;
+}
+
+.aggregate-overview {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+
+.aggregate-overview [data-putting-summary-card] small {
+  display:block;
+  margin-top:.2rem;
+  color:var(--muted);
+  font-size:.66rem;
+}
+
+.putting-empty-state {
+  padding:1rem .5rem;
+  border:1px dashed var(--line);
+  border-radius:10px;
+  background:#fafcfa;
+}
+
+@media(max-width:720px) {
+  .aggregate-overview {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
