@@ -4,6 +4,7 @@ import {
   inferShotType,
   missParts
 } from './calculations.js';
+import {importRoundsExport,ROUND_EXPORT_FORMAT} from './round-export.js';
 
 const DEFAULT_CLUBS={drive:'Driver',approach:'',chip:'Sand wedge',putt:'Putter'};
 
@@ -237,6 +238,19 @@ export function convertPgaFixtureToRounds(fixture,{ now=()=>new Date().toISOStri
 }
 
 export function importPgaFixture(fixture,roundStore,options={}) {
+  // The landing-page chooser historically accepted only the private PGA test
+  // fixture. The app's own exported backup has a distinct top-level format,
+  // so dispatch it to the round restore path instead of misreading its
+  // `version` field as an unsupported PGA fixture schema.
+  if(fixture?.format===ROUND_EXPORT_FORMAT){
+    const result=importRoundsExport(fixture,roundStore);
+    return {
+      ...result,
+      playerName:'saved',
+      tournamentName:'backup'
+    };
+  }
+
   if(!roundStore?.save||!roundStore?.get) throw new Error('Round storage is unavailable.');
   const rounds=convertPgaFixtureToRounds(fixture,options);
   let added=0;
@@ -247,6 +261,7 @@ export function importPgaFixture(fixture,roundStore,options={}) {
     roundStore.save(round);
   }
   return {
+    kind:'pga-fixture',
     rounds,
     added,
     updated,
