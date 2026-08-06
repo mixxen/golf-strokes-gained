@@ -1,3 +1,4 @@
+import { installPuttingAnalytics } from './putting-analytics.js';
 import { createRoundStore } from './round-store.js';
 
 export function formatDeleteRoundDate(value, locale) {
@@ -91,4 +92,5 @@ export function installRoundListDeleteControls({
 
 if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   installRoundListDeleteControls();
+  installPuttingAnalytics();
 }
