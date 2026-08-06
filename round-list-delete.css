@@ -1,0 +1,21 @@
+.round-card-delete {
+  padding:.46rem .62rem;
+  border:1px solid #edc8c4;
+  border-radius:9px;
+  background:#fff8f7;
+  color:var(--negative);
+  font-size:.75rem;
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.round-card-delete:hover {
+  border-color:#dca49e;
+  background:#fdecea;
+}
+
+.round-card-delete:focus-visible {
+  outline:3px solid rgb(178 58 48 / 18%);
+  outline-offset:2px;
+}
