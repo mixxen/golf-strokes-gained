@@ -1,5 +1,6 @@
 import { installAggregateStartingDistanceAnalytics } from './aggregate-distance-analytics.js';
 import { installPuttingAnalytics } from './putting-analytics.js';
+import { installSgChartScale } from './sg-chart-scale.js';
 import { installShortGameAnalytics } from './short-game-analytics.js';
 import { createRoundStore } from './round-store.js';
 
@@ -97,4 +98,5 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   installPuttingAnalytics();
   installAggregateStartingDistanceAnalytics();
   installShortGameAnalytics();
+  installSgChartScale();
 }

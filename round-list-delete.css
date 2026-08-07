@@ -52,6 +52,25 @@
   background:#fafcfa;
 }
 
+.sg-chart-scale {
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  padding:0 .1rem;
+  color:var(--muted);
+  font-size:.62rem;
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+
+.sg-chart-scale span:nth-child(2) {
+  text-align:center;
+}
+
+.sg-chart-scale span:last-child {
+  text-align:right;
+}
+
 @media(max-width:720px) {
   .aggregate-overview {
     grid-template-columns:repeat(2,minmax(0,1fr));
