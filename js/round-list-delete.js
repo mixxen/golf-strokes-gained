@@ -1,5 +1,6 @@
 import { installAggregateStartingDistanceAnalytics } from './aggregate-distance-analytics.js';
 import { installPuttingAnalytics } from './putting-analytics.js';
+import { installShortGameAnalytics } from './short-game-analytics.js';
 import { createRoundStore } from './round-store.js';
 
 export function formatDeleteRoundDate(value, locale) {
@@ -95,4 +96,5 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   installRoundListDeleteControls();
   installPuttingAnalytics();
   installAggregateStartingDistanceAnalytics();
+  installShortGameAnalytics();
 }
