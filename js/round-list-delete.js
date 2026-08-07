@@ -1,3 +1,4 @@
+import { installAggregateStartingDistanceAnalytics } from './aggregate-distance-analytics.js';
 import { installPuttingAnalytics } from './putting-analytics.js';
 import { createRoundStore } from './round-store.js';
 
@@ -93,4 +94,5 @@ export function installRoundListDeleteControls({
 if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   installRoundListDeleteControls();
   installPuttingAnalytics();
+  installAggregateStartingDistanceAnalytics();
 }
