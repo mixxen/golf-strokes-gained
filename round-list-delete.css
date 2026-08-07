@@ -24,8 +24,13 @@
   grid-column:1 / -1;
 }
 
-.aggregate-putting-chart {
+.aggregate-putting-chart,
+.aggregate-short-game-chart {
   margin-top:1rem;
+}
+
+.short-game-distance-chart {
+  min-width:0;
 }
 
 .aggregate-overview {
@@ -39,7 +44,8 @@
   font-size:.66rem;
 }
 
-.putting-empty-state {
+.putting-empty-state,
+.short-game-empty-state {
   padding:1rem .5rem;
   border:1px dashed var(--line);
   border-radius:10px;
